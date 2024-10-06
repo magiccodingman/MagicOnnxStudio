@@ -1,0 +1,62 @@
+﻿<MudDialog>
+    <DialogContent>
+        @if (checkingGitSetup == true)
+        {
+            <MudText Typo="Typo.h3" Color="Color.Primary">Checking Git Setup...</MudText>
+        }
+        else
+        {
+            @if (isGitAvailable == false)
+            {
+                <MudText Typo="Typo.h3" Color="Color.Error">Git Not Setup!</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Primary">You need to install and setup Git</MudText>
+                <MudNavLink Href="https://git-scm.com/downloads" Icon="@Icons.Custom.Brands.GitHub">Click Here To Download Git</MudNavLink>
+                <br />
+            }
+            @if (isGitLFSAvailable == false)
+            {
+                <MudText Typo="Typo.h3" Color="Color.Error">LFS Not Setup!</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Primary">You need to install and setup Git LFS</MudText>
+                <MudNavLink Href="https://git-lfs.com/" Icon="@Icons.Custom.Brands.GitHub">Click Here To Download LFS</MudNavLink>
+                <br />
+            }
+
+            @if (isGitLFSAvailable == false || isGitAvailable == false)
+            {
+                <br />
+                <MudText Typo="Typo.body1" Color="Color.Warning">Please relaunch the app after you've installed the necessary packages.</MudText>
+            }
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+
+    private bool isGitAvailable { get; set; } = true;
+    private bool isGitLFSAvailable { get; set; } = true;
+    private bool checkingGitSetup { get; set; } = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitSetup();
+        }
+    }
+
+
+    private async Task InitSetup()
+    {
+        checkingGitSetup = true;
+        StateHasChanged();
+        await Task.Delay(1000);
+        isGitAvailable = await new GitHelper().CheckGitAvailabilityAsync();
+        isGitLFSAvailable = await new GitHelper().CheckGitLfsAvailabilityAsync();
+        checkingGitSetup = false;
+        StateHasChanged();
+        if (isGitAvailable == true && isGitLFSAvailable == true)
+            MudDialog.Close();
+    }
+}

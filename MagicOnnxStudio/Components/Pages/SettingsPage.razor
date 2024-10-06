@@ -1,0 +1,73 @@
+﻿@page "/Settings"
+@using CommunityToolkit.Maui.Storage
+@using Microsoft.Maui.Controls.PlatformConfiguration
+
+<PageTitle>Settings</PageTitle>
+
+@if (settings != null)
+{
+    <MudTextField T="string" Label="Current Folder Location" 
+        @bind-Value="settings.DefaultFolderLocation" Disabled="true" />
+    <div style="padding-top:10px;">
+        <MudButton OnClick="SelectNewFolder" Variant="Variant.Filled" Color="Color.Primary">Set New Path</MudButton>
+        <MudButton OnClick="ResetToDefault" Variant="Variant.Filled" Color="Color.Secondary">Reset to Default</MudButton>
+    </div>
+    @if (string.IsNullOrWhiteSpace(settings.DefaultFolderLocation))
+    {
+        <div style="padding-top:30px;">
+        <MudText Color="Color.Primary">Default Location:</MudText>
+        <MudText Color="Color.Warning">@AppDomain.CurrentDomain.BaseDirectory</MudText>
+        </div>
+    }
+}
+else
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+}
+
+@code {
+    private Settings? settings;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Set up the settings instance
+            settings = new Settings(true);
+
+            // Trigger a re-render now that settings has been initialized
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectNewFolder()
+    {
+        // This will be the folder picker logic
+        // On Windows/Android, you can use FilePicker APIs to select a folder
+        var folder = await PickFolderAsync(); // Implement this based on the platform
+        if (!string.IsNullOrEmpty(folder))
+        {
+            settings.DefaultFolderLocation = folder;
+        }
+    }
+
+    private void ResetToDefault()
+    {
+        settings.DefaultFolderLocation = null;
+    }
+
+    // Placeholder method to simulate folder picking (you'd need platform-specific implementation)
+    private async Task<string?> PickFolderAsync()
+    {
+
+        var result = await FolderPicker.Default.PickAsync();
+        if (result.IsSuccessful)
+        {
+            string folderPath = result.Folder.Path;
+            // Use folderPath as needed
+            return folderPath;
+        }
+
+        return null;
+    }
+}

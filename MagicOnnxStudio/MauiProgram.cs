@@ -1,8 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CommunityToolkit.Maui;
+using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
 using Microsoft.Maui.Platform;
 using MudBlazor.Services;
+#if WINDOWS
 using Windows.Graphics;
+#endif
 
 namespace MagicOnnxStudio
 {
@@ -15,6 +18,7 @@ namespace MagicOnnxStudio
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseMauiCommunityToolkit()  
                  .ConfigureLifecycleEvents(events =>
                  {
 #if WINDOWS

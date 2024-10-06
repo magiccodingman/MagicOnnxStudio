@@ -270,6 +270,7 @@ namespace MagicOnnxStudio.Services
             cpu = 0,
             dml = 1,
             cuda = 2,
+            cuda12 = 3,
         }
 
         public string RunOnnxConversion(string inputDirectory, string outputDirectory, Precision precision, Execution execution)
@@ -287,6 +288,11 @@ namespace MagicOnnxStudio.Services
                 throw new FileNotFoundException("python.exe not found.");
             }
 
+
+            string executionString = execution.ToString();
+            if (execution == Execution.cuda12)
+                executionString = "cuda";
+
             // The command to be executed
             string fullCommand = $"-m onnx_runner -i \"{inputDirectory}\" -o \"{outputDirectory}\" -p {precision.ToString()} -e {execution.ToString()}";
 
@@ -297,21 +303,104 @@ namespace MagicOnnxStudio.Services
                 Arguments = fullCommand,
                 UseShellExecute = true,    // Allow the cmd window to appear
                 CreateNoWindow = false,    // Show the cmd window
-                WorkingDirectory = _PythonPath // Set working directory to the Python environment
+                WorkingDirectory = _PythonPath, // Set working directory to the Python environment
+                Verb = "runas"
             };
 
+            string id = "";
             // Start the process but don't wait for it or track it
             using (Process process = new Process { StartInfo = startInfo })
             {
                 process.Start();
+
+                id = new string(process.Id.ToString());
             }
 
-            // After starting the process, the C# application won't track it anymore
-            return null;
+            return id;
+        }
+
+        /*public string RunOnnxConversion(string inputDirectory, string outputDirectory, Precision precision, Execution execution)
+        {
+            if (string.IsNullOrWhiteSpace(_PythonPath))
+            {
+                throw new InvalidOperationException("Python environment path is not set.");
+            }
+
+            // Path to the python.exe executable in the Python environment
+            string pythonExePath = Path.Combine(_PythonPath, "python.exe");
+
+            if (!File.Exists(pythonExePath))
+            {
+                throw new FileNotFoundException("python.exe not found.");
+            }
+
+            string executionString = execution.ToString();
+            if (execution == Execution.cuda12)
+                executionString = "cuda";
+
+            // The command to be executed
+            string fullCommand = $"-m onnx_runner -i \"{inputDirectory}\" -o \"{outputDirectory}\" -p {precision.ToString()} -e {executionString}";
+
+            // Initialize the process to run python with the command
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = pythonExePath,  // Directly use the Python executable
+                Arguments = fullCommand,
+                UseShellExecute = true,    // Show the command window as requested
+                CreateNoWindow = false,    // Ensure the window is shown
+                WorkingDirectory = _PythonPath // Set working directory to the Python environment
+            };
+
+            // Start the process
+            using (Process process = new Process { StartInfo = startInfo })
+            {
+                process.Start(); // Start the process
+
+                // Return the process ID (so we can track it later)
+                return process.Id.ToString(); // Return the process ID for later tracking
+            }
+        }*/
+
+        public bool IsProcessRunning(string processId)
+        {
+            if (int.TryParse(processId, out int pid))
+            {
+                try
+                {
+                    // Attempt to get the process by ID
+                    Process process = Process.GetProcessById(pid);
+
+                    // Check if the process is still running
+                    return !process.HasExited;
+                }
+                catch (ArgumentException)
+                {
+                    // If the process does not exist, it has already exited
+                    return false;
+                }
+            }
+            else
+            {
+                throw new ArgumentException("Invalid process ID.");
+            }
         }
 
 
+        public async Task MonitorProcessAsync(string processId, TimeSpan interval)
+        {
+            while (true)
+            {
+                bool isRunning = IsProcessRunning(processId);
+                if (!isRunning)
+                {
+                    Console.WriteLine($"Process {processId} has finished.");
+                    break;
+                }
 
+                // Wait for the specified interval before checking again
+                await Task.Delay(interval);
+            }
+        }
         // Shutdown PythonNET engine when disposing
         //public void Dispose()
         //{

@@ -1,0 +1,117 @@
+﻿@page "/ConvertToOnnx"
+@using MagicOnnxStudio.Components.Shared
+@inject MudBlazor.IDialogService DialogService
+
+<MagicOnnxStudio.Components.Shared.AvailableStorageBar @ref="diskProgressComponent"></MagicOnnxStudio.Components.Shared.AvailableStorageBar>
+
+
+<MudDataGrid T="DownloadedModelInfo" MultiSelection="true" Items="@models" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Safetensor AI Models</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <SelectColumn T="Element" />
+        <PropertyColumn Property="x => x.Repo" Title="Repo" Sortable="true" Filterable="true" />
+        <PropertyColumn Property="x => x.Owner" Title="Owner" Sortable="true" Filterable="true" />
+        <PropertyColumn Property="x => x.TotalSizeGB" Title="Size (GB)" Sortable="true" Filterable="true">
+            <CellTemplate>
+                <MudStack Row>
+                    @($"{Math.Round(context.Item.TotalSizeGB, 2)}")
+                </MudStack>
+            </CellTemplate>
+        </PropertyColumn>
+
+        <TemplateColumn>
+            <CellTemplate>
+                <MudButton Color="Color.Primary"
+                           OnClick="@(() => ConvertModelToOnnx(context.Item))"
+                           Variant="Variant.Text">Convert</MudButton>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="DownloadedModelInfo" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private string _searchString;
+
+    private MagicOnnxStudio.Components.Shared.AvailableStorageBar diskProgressComponent;
+    // This method triggers the refresh action from the parent
+    private void TriggerDiskProgressUpdate()
+    {
+        // Call the delegate to refresh the child component
+        diskProgressComponent?.RefreshProgress?.Invoke();
+    }
+
+    string downloadPath { get; set; }
+    string onnxPath { get; set; }
+    private List<DownloadedModelInfo> models { get; set; } = new List<DownloadedModelInfo>();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Startup();
+        }
+    }
+
+    private void Startup()
+    {
+        downloadPath = new DownloadHelper().EnsureAiModelDownloadsFolder();
+        onnxPath = new DownloadHelper().EnsureAiModelDefaultOutputFolder();
+        models = ModelInfoFinder.GetDownloadedModelInfos()??new List<DownloadedModelInfo>();
+        TriggerDiskProgressUpdate();
+        StateHasChanged();
+    }
+
+    private Func<DownloadedModelInfo, bool> _quickFilter => x =>
+       {
+           if (string.IsNullOrWhiteSpace(_searchString))
+               return true;
+
+           if (!string.IsNullOrWhiteSpace(x.Repo))
+           {
+               string normalizedRepoName = x.Repo.Replace("_", " ").Replace("-", " ");
+               if (normalizedRepoName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                   return true;
+               if (x.Repo.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                   return true;
+           }
+
+           if (!string.IsNullOrWhiteSpace(x.Owner))
+           {
+               string normalizedOwnerName = x.Owner.Replace("_", " ").Replace("-", " ");
+               if (normalizedOwnerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                   return true;
+               if (x.Owner.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                   return true;
+           }
+
+           return false;
+       };
+
+    private async Task ConvertModelToOnnx(DownloadedModelInfo modelInfo)
+    {
+        var options = new DialogOptions
+            {
+                CloseButton = false, // No close button
+                BackdropClick = false,
+                MaxWidth = MaxWidth.Medium
+            };
+
+        DialogParameters parameters = new DialogParameters { ["_modelInfo"] = modelInfo };
+
+        var dialog = await DialogService.ShowAsync<ConvertAiModelToOnnx>($"Convert: {modelInfo.Repo}", parameters, options);
+        var result = await dialog.Result;
+
+        if (result?.Canceled == false)
+        {
+            Startup();
+        }
+
+    }
+}

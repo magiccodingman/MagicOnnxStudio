@@ -1,0 +1,67 @@
+﻿@if (AvailableStorage < ExtremeWarningAvailableStorage)
+{
+    <div style="padding-top:15px;">
+        <MudText Typo="Typo.h6" Color="Color.Error">Disk Space Too Low!</MudText>
+        <MudText Color="Color.Error">You have very little disk space. Downloading any AI models or trying to convert any to ONNX may result in failure or system crashes.</MudText>
+    </div>
+}
+else if (AvailableStorage < WarningAvailableStorage)
+{
+    <div style="padding-top:15px;">
+        <MudText Typo="Typo.h3" Color="Color.Warning">Disk Space Warning</MudText>
+        <MudText Color="Color.Warning">AI & ONNX conversion needs a lot of disk space. You've not exactly got a great deal of extra storage space.</MudText>
+    </div>
+}
+<MudProgressLinear Color="@color" Size="Size.Large" Value="@DiskUseagePercentage" Class="my-7">
+    <div style="background-color: #333; padding: 8px 25px; border-radius: 4px; display: inline-block;">
+        <MudText Typo="Typo.h6" Style="color: white;">
+            <b>@($"{AvailableStorage} GB avail.")</b>
+        </MudText>
+    </div>
+</MudProgressLinear>
+
+
+
+@code {
+    [Parameter] public Action RefreshProgress { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Assign the RefreshProgress action if it is null, so it can be called externally.
+        RefreshProgress = RefreshProgress ?? (() => SetProgressBarInformation());
+    }
+
+    private double WarningAvailableStorage = 300;
+    private double ExtremeWarningAvailableStorage = 150;
+
+    private MudBlazor.Color color { get; set; } = MudBlazor.Color.Info;
+    private double AvailableStorage { get; set; }
+    private double TotalStorage { get; set; }
+    private double DiskUseagePercentage { get; set; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            SetProgressBarInformation();
+        }
+    }
+
+    public void SetProgressBarInformation(double temporary = 0)
+    {
+        var settings = new Settings(true, true);
+        var DriveDirectory = StorageHelper.GetDriveDirectory(settings.DefaultFolderLocation);
+        var availableGb = StorageHelper.GetAvailableStorageInGB(DriveDirectory);
+        var totalGb = StorageHelper.GetTotalStorageInGB(DriveDirectory) + temporary;
+        AvailableStorage = Math.Round(availableGb, 2);
+
+        if (AvailableStorage < ExtremeWarningAvailableStorage)
+            color = MudBlazor.Color.Error;
+        else if (AvailableStorage < WarningAvailableStorage)
+            color = MudBlazor.Color.Warning;
+        else
+            color = MudBlazor.Color.Info;
+        TotalStorage = Math.Round(totalGb, 2);
+        DiskUseagePercentage = Math.Round((TotalStorage-AvailableStorage)/TotalStorage, 2)*100;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,179 @@
+﻿@page "/DownloadModels"
+@using System.Text.Json
+<MagicOnnxStudio.Components.Shared.AvailableStorageBar @ref="diskProgressComponent"></MagicOnnxStudio.Components.Shared.AvailableStorageBar>
+
+<div style="padding-top:20px;padding-bottom:20px;">
+    <MudText Color="Color.Primary">HuggingFace is the most popular site to find AI models:</MudText>
+    <MudNavLink Href="https://huggingface.co/" Icon="@Icons.Custom.Brands.GitHub">Click Here To Go To Huggingface.co</MudNavLink>
+</div>
+
+@if (ModelInfo == null || string.IsNullOrWhiteSpace(ModelInfo.ProjectUrl))
+{
+    <MudText Color="Color.Primary" Typo="Typo.h6">Enter the repository URL:</MudText>
+
+    <!-- Text input for URL -->
+    <MudTextField @bind-Value="typedProjectUrl" Label="Repository URL" Variant="Variant.Filled" Immediate="true"
+                  OnKeyUp="@(async (e) => { if (e.Key == "Enter") await GetRepoInfo(); })"></MudTextField>
+
+    <div style="padding-top:10px;">
+        <!-- Button for checking the repo -->
+        <MudButton OnClick="GetRepoInfo"
+                   Color="Color.Primary">Download</MudButton>
+    </div>
+}
+else if (isDownloading == false)
+{
+    <!-- Show repo information -->
+    <MudText Color="Color.Primary" Typo="Typo.h6">Repository Information:</MudText>
+    <MudTextField Label="Owner" Variant="Variant.Filled" ReadOnly="true" @bind-Value="ModelInfo.Owner"></MudTextField>
+    <MudTextField Label="Repo" Variant="Variant.Filled" ReadOnly="true" @bind-Value="ModelInfo.Repo"></MudTextField>
+    <MudTextField Label="Project URL" Variant="Variant.Filled" ReadOnly="true" @bind-Value="ModelInfo.ProjectUrl"></MudTextField>
+
+    <div style="padding-top:10px;">
+        <!-- Buttons for confirm download or reset -->
+        <MudButton Color="Color.Success" OnClick="CloneRepository">Confirm & Download</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="ResetRepoChoice">Reset</MudButton>
+    </div>
+}
+else
+{
+    <MudText Color="Color.Primary" Typo="Typo.h6"><MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" /> Downloading</MudText>
+}
+
+
+@code {
+    private string typedProjectUrl { get; set; }
+
+    private MagicOnnxStudio.Components.Shared.AvailableStorageBar diskProgressComponent;
+    private string downloadPath { get; set; }
+    private DownloadedModelInfo ModelInfo { get; set; } = new DownloadedModelInfo();
+    private Settings settings { get; set; }
+    private bool isDownloading { get; set; } = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            downloadPath = new DownloadHelper().EnsureAiModelDownloadsFolder();
+            new DownloadHelper().EnsureAiModelDefaultOutputFolder();
+            var asdf = ModelInfoFinder.GetDownloadedModelInfos();
+
+        }
+    }
+
+    private async Task GetRepoInfo()
+    {
+        if (string.IsNullOrWhiteSpace(typedProjectUrl))
+            return;
+
+        try
+        {
+            var urlParseResults = GitHelper.ParseUrl(typedProjectUrl);
+            ModelInfo = new DownloadedModelInfo();
+            ModelInfo.Owner = urlParseResults.owner;
+            ModelInfo.Repo = urlParseResults.repo;
+            ModelInfo.ProjectUrl = typedProjectUrl;
+            isDownloading = false;
+        }
+        catch
+        {
+            ModelInfo = new DownloadedModelInfo();
+            ModelInfo.Owner = "unknown";
+            ModelInfo.Repo = "unknown";
+            ModelInfo.ProjectUrl = typedProjectUrl;
+            isDownloading = false;
+        }
+        StateHasChanged();
+
+    }
+
+    private void ResetRepoChoice()
+    {
+        ModelInfo = new DownloadedModelInfo();
+        isDownloading = false;
+        typedProjectUrl = null;
+        StateHasChanged();
+    }
+
+    private async Task CloneRepository()
+    {
+        // Define the temporary folder location
+        string temporaryLocation = Path.Combine(downloadPath, "temp");
+
+        FileHelper.DeleteLocation(temporaryLocation);
+
+        isDownloading = true;
+        StateHasChanged();
+        await Task.Delay(5);
+        StateHasChanged();
+
+
+        // Create the temp directory
+        Directory.CreateDirectory(temporaryLocation);
+
+        // Clone the repository
+        await new GitHelper().CloneRepositoryAsync(ModelInfo.ProjectUrl, temporaryLocation);
+
+        // Create the new target folder based on owner and repo
+        string newFolderLocation = Path.Combine(downloadPath, $"o-{ModelInfo.Owner}--r-{ModelInfo.Repo}");
+
+        FileHelper.DeleteLocation(newFolderLocation);
+
+
+        Directory.CreateDirectory(newFolderLocation);
+
+        // Copy all files and directories from temp to new folder
+        CopyDirectory(temporaryLocation, newFolderLocation);
+
+        // Calculate the total size of the new folder in GB
+        double totalSizeGB = FileHelper.CalculateFolderSize(newFolderLocation) / (1024.0 * 1024.0 * 1024.0);
+
+        FileHelper.DeleteLocation(temporaryLocation);
+
+        // Create the ReadMe.txt file
+        string readmeFilePath = Path.Combine(newFolderLocation, "ReadMe.txt");
+        File.WriteAllText(readmeFilePath, $@"
+URL: {ModelInfo.ProjectUrl}
+Owner: {ModelInfo.Owner}
+Repo: {ModelInfo.Repo}
+Total Size: {totalSizeGB:F2} GB
+");
+
+        ModelInfo.TotalSizeGB = totalSizeGB;
+        await Task.Delay(1000); // sometimes giving the file system a breather prevents errors.
+        string modelInfoFilePath = Path.Combine(newFolderLocation, "ModelInfo.json");
+        string json = JsonSerializer.Serialize(ModelInfo, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(modelInfoFilePath, json);
+        ResetRepoChoice();
+        TriggerDiskProgressUpdate();
+    }
+
+    
+
+    private void CopyDirectory(string sourceDir, string targetDir)
+    {
+        // Copy all files
+        foreach (var file in Directory.GetFiles(sourceDir))
+        {
+            string destFile = Path.Combine(targetDir, Path.GetFileName(file));
+            File.Copy(file, destFile, true);
+        }
+
+        // Recursively copy all subdirectories
+        foreach (var directory in Directory.GetDirectories(sourceDir))
+        {
+            string destDir = Path.Combine(targetDir, Path.GetFileName(directory));
+            Directory.CreateDirectory(destDir);
+            CopyDirectory(directory, destDir);
+        }
+    }
+
+    
+
+    // This method triggers the refresh action from the parent
+    private void TriggerDiskProgressUpdate()
+    {
+        // Call the delegate to refresh the child component
+        diskProgressComponent?.RefreshProgress?.Invoke();
+    }
+
+}

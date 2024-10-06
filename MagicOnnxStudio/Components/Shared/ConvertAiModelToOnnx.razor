@@ -1,0 +1,151 @@
+﻿@using System.Text.Json
+@using static MagicOnnxStudio.Services.PythonEnvironmentService
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h5">
+            Choose your execution method and precision for the model conversion:
+        </MudText>
+        <MudText Typo="Typo.body1">
+            When selecting an execution method, you're choosing how the model will be run:
+            <ul>
+                <li><strong>CPU:</strong> The most universally usable version but slow for larger AI models.</li>
+                <li><strong>DirectML:</strong> Uses the NPU or GPU on compatible Windows machines, making it faster but only on compatible hardware.</li>
+                <li><strong>Cuda 11:</strong> Runs on most OS but requires setup and works on Nvidia GPUs.</li>
+                <li><strong>Cuda 12:</strong> Similar to Cuda 11 but optimized for newer hardware.</li>
+            </ul>
+            Precision determines the level of accuracy of the AI model:
+            <ul>
+                <li><strong>FP32:</strong> The most accurate but doubles the size of the model.</li>
+                <li><strong>FP16:</strong> A good balance between precision and size.</li>
+                <li><strong>INT4:</strong> The least precise but the most efficient in terms of size.</li>
+            </ul>
+        </MudText>
+
+        <MudPaper Class="pa-4">
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudSelect @bind-Value="selectedExecution" Label="Execution" Required="true">
+                        <MudSelectItem Value="Execution.cpu">CPU</MudSelectItem>
+                        <MudSelectItem Value="Execution.dml">DirectML</MudSelectItem>
+                        <MudSelectItem Value="Execution.cuda">Cuda 11</MudSelectItem>
+                        <MudSelectItem Value="Execution.cuda12">Cuda 12</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudSelect @bind-Value="selectedPrecision" Label="Precision" Required="true">
+                        <MudSelectItem Value="Precision.int4">INT4</MudSelectItem>
+                        <MudSelectItem Value="Precision.fp16">FP16</MudSelectItem>
+                        <MudSelectItem Value="Precision.fp32">FP32</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <div style="padding-top:10px">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnConvertClicked">
+                    Convert
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => MudDialog.Close())">
+                    Close
+                </MudButton>
+            </div>
+        </MudPaper>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public DownloadedModelInfo _modelInfo { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+        }
+    }
+
+    private string GetOnnxDownloadLocation()
+    {
+        var baseOnnxDirectory = DownloadHelper.GetOnnxModelFolderLocation();
+        string newFolderLocation = Path.Combine(baseOnnxDirectory, $"o-{_modelInfo.Owner}--r-{_modelInfo.Repo}-e-{selectedExecution.ToString().ToLower()}-p-{selectedPrecision.ToString().ToLower()}");
+        Directory.CreateDirectory(newFolderLocation);
+        return newFolderLocation;
+    }
+
+    private Execution selectedExecution = Execution.cpu;
+    private Precision selectedPrecision = Precision.int4;
+
+    // Button click handler
+    private async Task OnConvertClicked()
+    {
+
+        var pyService = new PythonEnvironmentService();
+
+        // Set the execution path based on user selection
+        string pythonPath = selectedExecution switch
+        {
+            Execution.cpu => Cache.CpuMlPythonPath,
+            Execution.dml => Cache.DirectMlPythonPath,
+            Execution.cuda => Cache.Cuda11MlPythonPath,
+            Execution.cuda12 => Cache.Cuda12MlPythonPath,
+            _ => Cache.CpuMlPythonPath // Default to CPU if something goes wrong
+        };
+
+        // Initialize the Python environment
+        pyService.InitializePythonEnvironment(pythonPath);
+
+        // Convert model
+        try
+        {
+            string outputPath = GetOnnxDownloadLocation();
+
+            FileHelper.DeleteLocation(outputPath);
+            outputPath = GetOnnxDownloadLocation();
+
+            var processId = pyService.RunOnnxConversion(
+                _modelInfo.ModelPath,
+                outputPath,
+                selectedPrecision,
+                selectedExecution
+            );
+
+            await pyService.MonitorProcessAsync(processId, TimeSpan.FromSeconds(2));
+
+            if (FileHelper.AreFilesInDirectory(outputPath))
+            {
+                // Calculate the total size of the new folder in GB
+                double totalSizeGB = FileHelper.CalculateFolderSize(outputPath) / (1024.0 * 1024.0 * 1024.0);
+
+                // Create the ReadMe.txt file
+                string readmeFilePath = Path.Combine(outputPath, "ReadMe.txt");
+                File.WriteAllText(readmeFilePath, $@"
+URL: {_modelInfo.ProjectUrl}
+Owner: {_modelInfo.Owner}
+Repo: {_modelInfo.Repo}
+Total Size: {_modelInfo:F2} GB
+Precision: {selectedPrecision.ToString()}
+Execution: {selectedExecution.ToString()}
+");
+
+                _modelInfo.precision = selectedPrecision.ToString();
+                _modelInfo.execution = selectedExecution.ToString();
+
+                _modelInfo.TotalSizeGB = totalSizeGB;
+                await Task.Delay(1000); // sometimes giving the file system a breather prevents errors.
+                string modelInfoFilePath = Path.Combine(outputPath, "ModelInfo.json");
+                string json = JsonSerializer.Serialize(_modelInfo, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(modelInfoFilePath, json);
+
+                MudDialog.Close();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            // Handle any errors and display them
+        }
+    }
+}
