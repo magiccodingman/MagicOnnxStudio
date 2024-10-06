@@ -5,12 +5,16 @@ If you want to convert an AI model to DirectML, Cuda, or CPU, you normally have 
 
 ## Minimum Hardware Requirements
 OS: Windows 10/11 x64
+
 RAM: 16 GB
+
 Available Space: 150 GB
 
 ## Recommended Hardware Requirements
 OS: Windows 10/11 x64
+
 RAM: 128 GB
+
 Drive Space: 200+ GB
 
 #### Hardware Requirements Notes
