@@ -3,6 +3,20 @@ Easy GUI interface to convert and test AI models using DirectML, Cuda, and CPU.
 
 If you want to convert an AI model to DirectML, Cuda, or CPU, you normally have to have 3 separate python instances. Each python instance needs a different setup. Then to test the AI models, you have to test each with ONNX libraries that also must be in their own separate instances. Lets make this process easier! Once place, one application, one instance!
 
+## Minimum Hardware Requirements
+OS: Windows 10/11 x64
+RAM: 16 GB
+Available Space: 150 GB
+
+## Recommended Hardware Requirements
+OS: Windows 10/11 x64
+RAM: 128 GB
+Drive Space: 200+ GB
+
+#### Hardware Requirements Notes
+Though the minimum will likely work, there's things to understand about this process that I cannot change. Unless you have 128 GB of RAM or more, the process will use your RAM and disk during the conversion process. I have 64 GB of RAM because 128 GB of RAM with DDR5 as of today is wonky. But even small AI models can spike useage to 120+ GB of RAM required. And once your RAM is filled up, it'll utilize your disk space. More RAM will be faster, but it's fine if disk is used, it's just slower. But that's why the drive storage requirements are so large. If you have 128 GB to 256 GB of RAM, then you'll likely only need something like 10-15 GB of additional drive space. But I'm sure it also really depends on the models you're converting as well. I've mostly been converting smaller models, so just be aware that during the conversion process, you'll need lots of memory/disk!
+
+
 #### Limitations
 Currently this only works with Windows due to how the code works with embedded environments. This can change without too much issues in the future. I bricked my Linux workstation accidentally and didn't have snapshots like a real chad. And due to time constraints, I didn't have the heart to rebuild my OS exactly as i needed it, so I'm back on Windows for the time being. Therefore, it's not exactly easy for me to unit test for Linux at the moment. So, until further notice or until someone converts some of the code to work accordingly for linux and submits a merge request. This application will only work on Windows as of right now. I'm sorry Linux users!
 
