@@ -1,0 +1,282 @@
+﻿<MudDialog>
+    <DialogContent>
+        @if (isRunning)
+        {
+            <MudText Typo="Typo.h3" Color="Color.Primary">This will take a while...</MudText>
+            <MudProgressLinear Color="Color.Info" Size="Size.Large" Value="prog" Class="my-7">
+                <div style="background-color: #333; padding: 8px 25px; border-radius: 4px; display: inline-block;">
+                    <MudText Typo="Typo.h6" Style="color: white;">
+                        <b>@($"{Math.Round(prog)}%")</b>
+                    </MudText>
+                </div>
+            </MudProgressLinear>
+        }
+
+        <ConsoleOutput ConsoleTextList="consoleTexts" />
+
+        @if (!isRunning)
+        {
+            @if (!preventAutoClose)
+            {
+                <MudText Typo="Typo.h3" Color="Color.Warning">Closing in @countdown seconds...</MudText>
+                <MudButton Size="Size.Large" Color="Color.Warning" OnClick="KeepOpen">Click Here To Prevent Popup From Closing</MudButton>
+            }
+            else
+            {
+                <MudButton Size="Size.Large" Color="Color.Warning" OnClick="CloseDialog">Close</MudButton>
+            }
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    private bool isRunning = true;
+    private bool preventAutoClose = false;
+    private int countdown = 10; // Countdown timer (starts at 5)
+    private List<ConsoleText> consoleTexts = new List<ConsoleText>();
+    private double prog { get; set; } = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await InitSetup();
+        }
+    }
+
+
+    private async Task InitSetup()
+    {
+        AddConsoleText("Initializing Embedded Python Environments", MudBlazor.Color.Warning, Typo.h4);
+
+        await Task.Delay(500);
+        PythonEnvironmentInitializer.InitializePythonEnvironments();
+        await Task.Delay(500);
+
+        prog += 5.88;
+        StateHasChanged();
+
+        // CPU
+        await InstallPipInEnvironments(() => Cache.CpuMlPythonPath, "CPU Environment");
+
+        prog += 5.88;
+        StateHasChanged();
+
+        AddConsoleText($"Setting up CPU Builder", MudBlazor.Color.Warning, Typo.h4);
+
+        var cpuPy = new PythonEnvironmentService();
+        cpuPy.InitializePythonEnvironment(Cache.CpuMlPythonPath);
+        prog += 5.88;
+        StateHasChanged();
+
+        await foreach (var output in RunGetPipCommand(cpuPy, "install torch transformers onnx onnxruntime"))
+        {
+            AddConsoleText(output, MudBlazor.Color.Info);
+        }
+
+        prog += 5.88;
+        StateHasChanged();
+
+        await foreach (var output in RunGetPipCommand(cpuPy, "install --pre onnxruntime-genai"))
+        {
+            AddConsoleText(output, MudBlazor.Color.Info);
+        }
+
+        prog += 5.88;
+        StateHasChanged();
+
+        await Task.Delay(500);
+
+
+
+        // Direct ML
+        AddConsoleText($"Setting up DirectML Builder", MudBlazor.Color.Warning, Typo.h4);
+        var dmlPy = new PythonEnvironmentService();
+        await InstallPipInEnvironments(() => Cache.DirectMlPythonPath, "DirectML Environment");
+        prog += 5.88;
+        StateHasChanged();
+        dmlPy.InitializePythonEnvironment(Cache.DirectMlPythonPath);
+        prog += 5.88;
+        StateHasChanged();
+        await foreach (var output in RunGetPipCommand(dmlPy, "install torch transformers onnx onnxruntime-directml"))
+        {
+            AddConsoleText(output, MudBlazor.Color.Info);
+        }
+        prog += 5.88;
+        StateHasChanged();
+        await foreach (var output in RunGetPipCommand(dmlPy, "install --pre onnxruntime-genai-directml"))
+        {
+            AddConsoleText(output, MudBlazor.Color.Info);
+        }
+        prog += 5.88;
+        StateHasChanged();
+
+        await Task.Delay(500);
+        // Cuda 11
+        AddConsoleText($"Setting up Cuda 11 Builder", MudBlazor.Color.Warning, Typo.h4);
+        await InstallPipInEnvironments(() => Cache.Cuda11MlPythonPath, "CUDA 11 Environment");
+        prog += 5.88;
+        StateHasChanged();
+        var cuda11Py = new PythonEnvironmentService();
+        cuda11Py.InitializePythonEnvironment(Cache.Cuda11MlPythonPath);
+        prog += 5.88;
+        StateHasChanged();
+        await foreach (var output in RunGetPipCommand(cuda11Py, "install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --index-url https://download.pytorch.org/whl/cu117"))
+        {
+            AddConsoleText(output, MudBlazor.Color.Info);
+        }
+        prog += 5.88;
+        StateHasChanged();
+        await foreach (var output in RunGetPipCommand(cuda11Py, "install --pre onnxruntime-genai-cuda --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"))
+        {
+            AddConsoleText(output, MudBlazor.Color.Info);
+        }
+        prog += 5.88;
+        StateHasChanged();
+        await Task.Delay(500);
+
+        // Cuda 12
+        AddConsoleText($"Setting up Cuda 12 Builder", MudBlazor.Color.Warning, Typo.h4);
+        await InstallPipInEnvironments(() => Cache.Cuda12MlPythonPath, "CUDA 12 Environment");
+        prog += 5.88;
+        StateHasChanged();
+
+        var cuda12Py = new PythonEnvironmentService();
+        cuda12Py.InitializePythonEnvironment(Cache.Cuda12MlPythonPath);
+        prog += 5.88;
+        StateHasChanged();
+
+        await foreach (var output in RunGetPipCommand(cuda12Py, "install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu122"))
+        {
+            AddConsoleText(output, MudBlazor.Color.Info);
+        }
+        prog += 5.88;
+        StateHasChanged();
+
+        await foreach (var output in RunGetPipCommand(cuda12Py, "install --pre onnxruntime-genai-cuda"))
+        {
+            AddConsoleText(output, MudBlazor.Color.Info);
+        }
+        prog += 5.88;
+        StateHasChanged();
+
+        StateHasChanged();
+        AddConsoleText("Completed!", MudBlazor.Color.Success, Typo.h3);
+        prog = 100;
+        StateHasChanged();
+
+
+        await Task.Delay(500);
+        isRunning = false;
+        await StartCountdown();
+
+
+        /*
+         * This code officially works!
+         */
+
+    //     string outputTest = cpuPy.RunOnnxConversion(@"C:\Ai_Models\Phi-3.5-mini-instruct_Uncensored",
+    // @"C:\Ai_Models\OnnxRuntime\tests\cpu",
+    // PythonEnvironmentService.Precision.int4,
+    // PythonEnvironmentService.Execution.cpu);
+    //     //AddConsoleText(outputTest, MudBlazor.Color.Info);
+    //     await Task.Delay(10); // Simulate async processing
+    }
+
+    private async Task StartCountdown()
+    {
+        while (countdown > 0 && !preventAutoClose)
+        {
+            await Task.Delay(1000); // Delay for 1 second
+            countdown--;
+            StateHasChanged();
+        }
+
+        if (!preventAutoClose && countdown == 0)
+        {
+            MudDialog.Close();
+        }
+    }
+
+    private void KeepOpen()
+    {
+        preventAutoClose = true;
+        StateHasChanged();
+    }
+
+    private void CloseDialog()
+    {
+        MudDialog.Close();
+    }
+
+    private async Task InstallPipInEnvironments(Func<string> getEnvironmentPath, string environmentName)
+    {
+        // Create Python service instance
+        var pythonService = new PythonEnvironmentService();
+
+        // Retrieve the environment path
+        var environmentPath = getEnvironmentPath();
+
+        // Initialize PythonNET with the path
+        pythonService.InitializePythonEnvironment(environmentPath);
+
+        // Add environment initialization message to the console
+        AddConsoleText($"Initializing Python environment: {environmentName}", MudBlazor.Color.Info, Typo.h6);
+
+        await foreach (var output in RunGetPipInstaller(pythonService))
+        {
+            AddConsoleText(output, MudBlazor.Color.Primary);
+        }
+
+        await foreach (var output in GetPipVersion(pythonService))
+        {
+            AddConsoleText(output, MudBlazor.Color.Success);
+        }
+    }
+
+    private async IAsyncEnumerable<string> GetPipVersion(PythonEnvironmentService pythonService)
+    {
+        // Run the pip command and capture the output
+        foreach (var output in pythonService.PipCommand("--version"))
+        {
+            yield return output;
+            await Task.Delay(10); // Simulate async processing
+        }
+    }
+
+    private async IAsyncEnumerable<string> RunGetPipInstaller(PythonEnvironmentService pythonService)
+    {
+        // Run the get-pip.py script and capture the output
+        foreach (var output in pythonService.RunGetPip())
+        {
+            yield return output;
+            await Task.Delay(10); // Simulate async processing
+        }
+    }
+
+    private async IAsyncEnumerable<string> RunGetPipCommand(PythonEnvironmentService pythonService, string command)
+    {
+        // Run the pip command and capture the output
+        foreach (var output in pythonService.PipCommand(command))
+        {
+            yield return output;
+            await Task.Delay(10); // Simulate async processing
+        }
+    }
+
+    private void AddConsoleText(string text, MudBlazor.Color color, MudBlazor.Typo typo = MudBlazor.Typo.body1)
+    {
+        // Create a new ConsoleText object and add it to the list
+        consoleTexts.Add(new ConsoleText
+            {
+                Text = text,
+                MudType = typo,
+                MudColor = color
+            });
+
+        // Trigger UI update
+        StateHasChanged();
+    }
+}

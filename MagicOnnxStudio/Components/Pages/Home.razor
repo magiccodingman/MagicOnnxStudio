@@ -1,0 +1,45 @@
+﻿@page "/"
+@using MagicOnnxStudio.Components.Shared
+@using MudBlazor
+@inject MudBlazor.IDialogService DialogService
+
+<MudText Typo="Typo.h3" Color="Color.Primary">Python Output</MudText>
+
+<ConsoleOutput ConsoleTextList="consoleTexts" />
+
+@code {
+    private List<ConsoleText> consoleTexts = new List<ConsoleText>();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ShowPopup();
+        }
+    }
+
+    private async Task ShowPopup()
+    {
+        var options = new DialogOptions
+            {
+                CloseButton = false, // No close button
+                BackdropClick = false,
+                MaxWidth = MaxWidth.Medium
+            };
+
+        var dialog = await DialogService.ShowAsync<InitialSetupPopup>("Initial Setup", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Optionally handle the result when the dialog closes
+        }
+    }
+
+}
