@@ -107,13 +107,22 @@
     private async Task InitSetup()
     {
         bool isEnabled = IsLongPathsEnabled();
-       // EnableLongPaths();
-       // bool isEnabledNow = IsLongPathsEnabled();
-        // Display the error message to the user
-        //await Application.Current.MainPage.DisplayAlert("Error", "Long Path admin access request denied. This is a requirement. The application will now close.", "OK");
+        if(isEnabled == false)
+        {
+            EnableLongPaths();
 
-        // Close the application after the user presses OK
-        //System.Diagnostics.Process.GetCurrentProcess().CloseMainWindow();
+              bool isEnabledNow = IsLongPathsEnabled();
+              if(isEnabledNow == false)
+              {
+                // Display the error message to the user
+                await Application.Current.MainPage.DisplayAlert("Error", "Long Path admin access request denied or something went wrong. This is a requirement. This allows python path names to be longer on Windows. The application will now close. Please try again.", "OK");
+
+                // Close the application after the user presses OK
+                System.Diagnostics.Process.GetCurrentProcess().CloseMainWindow();
+              }
+        }
+        
+      
 
         AddConsoleText("Initializing Embedded Python Environments", MudBlazor.Color.Warning, Typo.h4);
 
@@ -137,7 +146,7 @@
         prog += 5.88;
         StateHasChanged();
 
-        await foreach (var output in RunGetPipCommand(cpuPy, "install torch transformers onnx onnxruntime"))
+        await foreach (var output in RunGetPipCommand(cpuPy, "install --upgrade torch transformers onnx onnxruntime"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
@@ -145,7 +154,7 @@
         prog += 5.88;
         StateHasChanged();
 
-        await foreach (var output in RunGetPipCommand(cpuPy, "install --pre onnxruntime-genai"))
+        await foreach (var output in RunGetPipCommand(cpuPy, "install --upgrade --pre onnxruntime-genai"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
@@ -166,13 +175,13 @@
         dmlPy.InitializePythonEnvironment(Cache.DirectMlPythonPath);
         prog += 5.88;
         StateHasChanged();
-        await foreach (var output in RunGetPipCommand(dmlPy, "install torch transformers onnx onnxruntime-directml"))
+        await foreach (var output in RunGetPipCommand(dmlPy, "install --upgrade torch transformers onnx onnxruntime-directml"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
         prog += 5.88;
         StateHasChanged();
-        await foreach (var output in RunGetPipCommand(dmlPy, "install --pre onnxruntime-genai-directml"))
+        await foreach (var output in RunGetPipCommand(dmlPy, "install --upgrade --pre onnxruntime-genai-directml"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
@@ -195,7 +204,7 @@
         }
         prog += 5.88;
         StateHasChanged();
-        await foreach (var output in RunGetPipCommand(cuda11Py, "install --pre onnxruntime-genai-cuda --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"))
+        await foreach (var output in RunGetPipCommand(cuda11Py, "install --upgrade --pre onnxruntime-genai-cuda --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
@@ -214,14 +223,14 @@
         prog += 5.88;
         StateHasChanged();
 
-        await foreach (var output in RunGetPipCommand(cuda12Py, "install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu122"))
+        await foreach (var output in RunGetPipCommand(cuda12Py, "install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu122"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
         prog += 5.88;
         StateHasChanged();
 
-        await foreach (var output in RunGetPipCommand(cuda12Py, "install --pre onnxruntime-genai-cuda"))
+        await foreach (var output in RunGetPipCommand(cuda12Py, "install --upgrade --pre onnxruntime-genai-cuda"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }

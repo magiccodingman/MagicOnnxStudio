@@ -1,0 +1,112 @@
+﻿<MudDialog>
+    <DialogContent>
+        @if (!isDeleting)
+        {
+            <MudText Typo="Typo.h6">Warning</MudText>
+            <MudText Typo="Typo.body1">You are about to delete the selected AI model. Once deleted, it will be permanently removed.</MudText>
+
+            @if (onnxModels != null && onnxModels.Any())
+            {
+                <MudText Typo="Typo.body1">
+                    All associated ONNX models will also be deleted if you choose to delete everything.
+                </MudText>
+            }
+
+            <MudStack Spacing="2">
+                <!-- Buttons for the different delete options -->
+                <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteAllClick">Delete All (AI Model & ONNX Models)</MudButton>
+
+                @if (onnxModels != null && onnxModels.Any())
+                {
+                    <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteONNXClick">Delete Only ONNX Models</MudButton>
+                }
+
+                <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteAIClick">Delete Only AI Model</MudButton>
+
+                <!-- Cancel Button -->
+                <MudButton Disabled="@isDeleting" Variant="Variant.Outlined" OnClick="Cancel">Cancel</MudButton>
+            </MudStack>
+        }
+        else
+        {
+            <!-- Show a progress spinner while deleting -->
+            <MudStack AlignItems="AlignItems.Center" JustifyContent="center" Style="height:200px;">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+                <MudText Typo="Typo.h6">Deleting...</MudText>
+            </MudStack>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public DownloadedModelInfo _modelInfo { get; set; }
+
+    [Parameter]
+    public List<DownloadedModelInfo> onnxModels { get; set; } = new List<DownloadedModelInfo>();
+
+    private bool isDeleting = false;
+
+    private async Task OnDeleteAllClick()
+    {
+        isDeleting = true;
+        StateHasChanged(); // Force UI update to show the spinner
+
+        await Task.Delay(500); // Simulate delay for demo purposes
+        DeleteAll();
+    }
+
+    private async Task OnDeleteAIClick()
+    {
+        isDeleting = true;
+        StateHasChanged(); // Force UI update to show the spinner
+
+        await Task.Delay(500); // Simulate delay for demo purposes
+        DeleteAIModel();
+    }
+
+    private async Task OnDeleteONNXClick()
+    {
+        isDeleting = true;
+        StateHasChanged(); // Force UI update to show the spinner
+
+        await Task.Delay(500); // Simulate delay for demo purposes
+        DeleteONNXModels();
+    }
+
+    private void DeleteAll()
+    {
+        // Delete both AI model and ONNX models if present
+        DeleteAIModel();
+        DeleteONNXModels();
+        MudDialog.Close();
+    }
+
+    private void DeleteAIModel()
+    {
+        if (_modelInfo != null)
+        {
+            FileHelper.DeleteLocation(_modelInfo.ModelPath);
+        }
+        MudDialog.Close();
+    }
+
+    private void DeleteONNXModels()
+    {
+        if (onnxModels != null && onnxModels.Any())
+        {
+            foreach (var onnx in onnxModels)
+            {
+                FileHelper.DeleteLocation(onnx.ModelPath);
+            }
+        }
+        MudDialog.Close();
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

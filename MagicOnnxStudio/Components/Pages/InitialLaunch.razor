@@ -1,0 +1,74 @@
+﻿@page "/"
+@using MagicOnnxStudio.Components.Shared
+@using MudBlazor
+@inject MudBlazor.IDialogService DialogService
+@inject NavigationManager Navigation
+
+@code {
+    private List<ConsoleText> consoleTexts = new List<ConsoleText>();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            bool forceDisableStartup = false;
+
+
+            bool isDebug = false;
+#if DEBUG
+    isDebug = true;
+#endif
+
+            if (isDebug == false || (forceDisableStartup == false && isDebug == true))
+            {
+                await ShowPythonSetupPopup();
+                await ShowGitSetupPopup();
+
+                Navigation.NavigateTo("./home");
+            }
+        }
+    }
+
+    private async Task ShowPythonSetupPopup()
+    {
+        var options = new DialogOptions
+            {
+                CloseButton = false, // No close button
+                BackdropClick = false,
+                MaxWidth = MaxWidth.Medium
+            };
+
+        var dialog = await DialogService.ShowAsync<InitialSetupPopup>("Initial Setup", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Optionally handle the result when the dialog closes
+        }
+
+    }
+    private async Task ShowGitSetupPopup()
+    {
+        var options = new DialogOptions
+            {
+                CloseButton = false, // No close button
+                BackdropClick = false,
+                MaxWidth = MaxWidth.Medium
+            };
+
+        var dialog = await DialogService.ShowAsync<GitCheckPopup>("Git Check", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Optionally handle the result when the dialog closes
+        }
+
+    }
+}

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,7 +9,28 @@ namespace MagicOnnxStudio.Helpers
 {
     public class FileHelper
     {
+        public static void OpenFolderInExplorer(string folderPath)
+        {
+            if (string.IsNullOrWhiteSpace(folderPath))
+            {
+                throw new ArgumentException("Directory path is invalid.", nameof(folderPath));
+            }
 
+            // Ensure the directory exists before trying to open it
+            if (Directory.Exists(folderPath))
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    Arguments = folderPath,
+                    FileName = "explorer.exe"
+                };
+                Process.Start(startInfo);
+            }
+            else
+            {
+                throw new DirectoryNotFoundException($"The directory '{folderPath}' does not exist.");
+            }
+        }
         public static bool AreFilesInDirectory(string directoryPath)
         {
             // Check if the directory exists first

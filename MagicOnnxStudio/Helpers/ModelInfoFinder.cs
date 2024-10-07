@@ -23,6 +23,19 @@ namespace MagicOnnxStudio.Helpers
             return modelInfoList;
         }
 
+        public static List<DownloadedModelInfo> GetOnnxConvertedModelInfos()
+        {
+            string rootDirectory = DownloadHelper.GetOnnxModelFolderLocation();
+
+            // Create a list to hold the deserialized model info objects
+            List<DownloadedModelInfo> modelInfoList = new List<DownloadedModelInfo>();
+
+            // Recursively search for ModelInfo.json files in all subdirectories
+            SearchDirectory(rootDirectory, modelInfoList);
+
+            return modelInfoList;
+        }
+
         private static void SearchDirectory(string directory, List<DownloadedModelInfo> modelInfoList)
         {
             // Get all subdirectories

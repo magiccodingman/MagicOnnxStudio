@@ -1,10 +1,21 @@
 ﻿@page "/DownloadModels"
 @using System.Text.Json
+@using System.Diagnostics
 <MagicOnnxStudio.Components.Shared.AvailableStorageBar @ref="diskProgressComponent"></MagicOnnxStudio.Components.Shared.AvailableStorageBar>
 
 <div style="padding-top:20px;padding-bottom:20px;">
-    <MudText Color="Color.Primary">HuggingFace is the most popular site to find AI models:</MudText>
-    <MudNavLink Href="https://huggingface.co/" Icon="@Icons.Custom.Brands.GitHub">Click Here To Go To Huggingface.co</MudNavLink>
+    <MudText>HuggingFace is the most popular site to find AI models:</MudText>
+    <MudLink Href="https://huggingface.co/" Target="_blank">
+        https://huggingface.co/
+    </MudLink>
+    <MudText>- This application automatically updates. So as ONNX updates, so will this app.</MudText>
+</div>
+
+<div style="padding-bottom:20px;">
+<MudText>Can only convert AI models to ONNX that're listed on the following official link:</MudText>
+    <MudLink Href="https://onnxruntime.ai/docs/genai/howto/build-model.html" Target="_blank">
+        https://onnxruntime.ai/docs/genai/howto/build-model.html
+    </MudLink>
 </div>
 
 @if (ModelInfo == null || string.IsNullOrWhiteSpace(ModelInfo.ProjectUrl))
@@ -57,6 +68,29 @@ else
             new DownloadHelper().EnsureAiModelDefaultOutputFolder();
             var asdf = ModelInfoFinder.GetDownloadedModelInfos();
 
+        }
+    }
+
+    public static void OpenFolderInExplorer(string folderPath)
+    {
+        if (string.IsNullOrWhiteSpace(folderPath))
+        {
+            throw new ArgumentException("Directory path is invalid.", nameof(folderPath));
+        }
+
+        // Ensure the directory exists before trying to open it
+        if (Directory.Exists(folderPath))
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    Arguments = folderPath,
+                    FileName = "explorer.exe"
+                };
+            Process.Start(startInfo);
+        }
+        else
+        {
+            throw new DirectoryNotFoundException($"The directory '{folderPath}' does not exist.");
         }
     }
 
@@ -143,6 +177,13 @@ Total Size: {totalSizeGB:F2} GB
         string modelInfoFilePath = Path.Combine(newFolderLocation, "ModelInfo.json");
         string json = JsonSerializer.Serialize(ModelInfo, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(modelInfoFilePath, json);
+
+        string gitPath = Path.Combine(newFolderLocation, ".git");
+        if (Directory.Exists(gitPath))
+        {
+            FileHelper.DeleteLocation(gitPath);
+        }
+
         ResetRepoChoice();
         TriggerDiskProgressUpdate();
     }

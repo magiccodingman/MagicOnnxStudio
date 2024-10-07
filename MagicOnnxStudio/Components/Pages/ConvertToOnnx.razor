@@ -13,7 +13,10 @@
                       AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
     </ToolBarContent>
     <Columns>
-        <SelectColumn T="Element" />
+        <HierarchyColumn T="DownloadedModelInfo"
+                         ButtonDisabledFunc="@(x => onnxModels == null
+|| !onnxModels.Any()
+|| !onnxModels.Any(y => y.ProjectUrl.Equals(x.ProjectUrl, StringComparison.OrdinalIgnoreCase)))" />
         <PropertyColumn Property="x => x.Repo" Title="Repo" Sortable="true" Filterable="true" />
         <PropertyColumn Property="x => x.Owner" Title="Owner" Sortable="true" Filterable="true" />
         <PropertyColumn Property="x => x.TotalSizeGB" Title="Size (GB)" Sortable="true" Filterable="true">
@@ -26,12 +29,73 @@
 
         <TemplateColumn>
             <CellTemplate>
-                <MudButton Color="Color.Primary"
-                           OnClick="@(() => ConvertModelToOnnx(context.Item))"
-                           Variant="Variant.Text">Convert</MudButton>
+                @if (context.Item.IsSafeTensor)
+                {
+                    <MudTooltip Text="Convert">
+                        <MudIconButton Icon="@Icons.Material.Filled.ResetTv"
+                                   Color="Color.Primary" OnClick="@(() => ConvertModelToOnnx(context.Item))" />
+                    </MudTooltip>
+                }
+                else if(context.Item.IsGGUF)
+                {
+                    <MudTooltip Text="GGUF Not Currently Supported">
+                        <MudIconButton Icon="@Icons.Material.Filled.ResetTv"
+                                       Color="Color.Error"/>
+                    </MudTooltip>
+                }
+                else
+                {
+                <MudTooltip Text="Unsupported Model Type">
+                    <MudIconButton Icon="@Icons.Material.Filled.ResetTv"
+                                   Color="Color.Error" />
+                </MudTooltip>
+                }
+                <MudTooltip Text="Open File Explorer">
+                    <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                   Color="Color.Primary" OnClick="@(() => FileHelper.OpenFolderInExplorer(context.Item.ModelPath))" />
+
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => DeleteAiModel(context.Item))" />
+                    </MudTooltip>
+                </MudTooltip>
             </CellTemplate>
         </TemplateColumn>
     </Columns>
+
+    <ChildRowContent>
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">ONNX Models Converted</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+
+                <MudDataGrid T="DownloadedModelInfo" Items="@onnxModels.FindAll(y => y.ProjectUrl.Equals(context.Item.ProjectUrl, StringComparison.OrdinalIgnoreCase))">
+                    <Columns>
+                        <PropertyColumn Property="x => x.execution" Title="Execution" />
+                        <PropertyColumn Property="x => x.precision" Title="Precision" />
+                        <PropertyColumn Property="x => x.TotalSizeGB_Rounded2" Title="Size (GB)" />
+                        <TemplateColumn Context="miniCon">
+                            <CellTemplate>
+                                <MudTooltip Text="Open File Explorer">
+                                    <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                                   Color="Color.Primary" OnClick="@(() => FileHelper.OpenFolderInExplorer(miniCon.Item.ModelPath))" />
+                                </MudTooltip>
+
+                                <MudTooltip Text="Delete">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                    OnClick="@(() => DeleteOnnxModel(context.Item))" />
+                                </MudTooltip>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            </MudCardContent>
+        </MudCard>
+    </ChildRowContent>
+
     <PagerContent>
         <MudDataGridPager T="DownloadedModelInfo" />
     </PagerContent>
@@ -51,6 +115,7 @@
     string downloadPath { get; set; }
     string onnxPath { get; set; }
     private List<DownloadedModelInfo> models { get; set; } = new List<DownloadedModelInfo>();
+    private List<DownloadedModelInfo> onnxModels { get; set; } = new List<DownloadedModelInfo>();
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -64,6 +129,8 @@
         downloadPath = new DownloadHelper().EnsureAiModelDownloadsFolder();
         onnxPath = new DownloadHelper().EnsureAiModelDefaultOutputFolder();
         models = ModelInfoFinder.GetDownloadedModelInfos()??new List<DownloadedModelInfo>();
+        onnxModels = ModelInfoFinder.GetOnnxConvertedModelInfos()??new List<DownloadedModelInfo>();
+
         TriggerDiskProgressUpdate();
         StateHasChanged();
     }
@@ -106,6 +173,47 @@
         DialogParameters parameters = new DialogParameters { ["_modelInfo"] = modelInfo };
 
         var dialog = await DialogService.ShowAsync<ConvertAiModelToOnnx>($"Convert: {modelInfo.Repo}", parameters, options);
+        var result = await dialog.Result;
+
+        if (result?.Canceled == false)
+        {
+            Startup();
+        }
+
+    }
+
+    private async Task DeleteAiModel(DownloadedModelInfo modelInfo)
+    {
+        var options = new DialogOptions
+            {
+                CloseButton = false, // No close button
+                BackdropClick = false,
+                MaxWidth = MaxWidth.Medium
+            };
+
+        DialogParameters parameters = new DialogParameters { ["_modelInfo"] = modelInfo, ["onnxModels"] = onnxModels.FindAll(y => y.ProjectUrl.Equals(modelInfo.ProjectUrl, StringComparison.OrdinalIgnoreCase)) };
+
+        var dialog = await DialogService.ShowAsync<DeleteModel>($"Deleting: {modelInfo.Repo}", parameters, options);
+        var result = await dialog.Result;
+
+        if (result?.Canceled == false)
+        {
+            Startup();
+        }
+    }
+
+    private async Task DeleteOnnxModel(DownloadedModelInfo modelInfo)
+    {
+        var options = new DialogOptions
+            {
+                CloseButton = false, // No close button
+                BackdropClick = false,
+                MaxWidth = MaxWidth.Medium
+            };
+
+        DialogParameters parameters = new DialogParameters { ["_modelInfo"] = modelInfo };
+
+        var dialog = await DialogService.ShowAsync<DeleteModel>($"Deleting: {modelInfo.Repo}", parameters, options);
         var result = await dialog.Result;
 
         if (result?.Canceled == false)
