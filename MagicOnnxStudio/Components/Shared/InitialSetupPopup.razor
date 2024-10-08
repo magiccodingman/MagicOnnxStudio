@@ -150,7 +150,6 @@
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
-
         prog += 5.88;
         StateHasChanged();
 
@@ -179,6 +178,7 @@
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
+
         prog += 5.88;
         StateHasChanged();
         await foreach (var output in RunGetPipCommand(dmlPy, "install --upgrade --pre onnxruntime-genai-directml"))
@@ -202,6 +202,7 @@
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
+
         prog += 5.88;
         StateHasChanged();
         await foreach (var output in RunGetPipCommand(cuda11Py, "install --upgrade --pre onnxruntime-genai-cuda --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/"))
@@ -227,6 +228,7 @@
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
+
         prog += 5.88;
         StateHasChanged();
 

@@ -1,10 +1,15 @@
 ﻿@using System.Text.Json
 @using static MagicOnnxStudio.Services.PythonEnvironmentService
+@inject MudBlazor.IDialogService DialogService
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.h5">
             Choose your execution method and precision for the model conversion:
         </MudText>
+        <MudText>Can only convert AI models to ONNX that're listed on the following official link:</MudText>
+        <MudLink Href="https://onnxruntime.ai/docs/genai/howto/build-model.html" Target="_blank">
+            https://onnxruntime.ai/docs/genai/howto/build-model.html
+        </MudLink>
         <MudText Typo="Typo.body1">
             When selecting an execution method, you're choosing how the model will be run:
             <ul>
@@ -81,47 +86,51 @@
     // Button click handler
     private async Task OnConvertClicked()
     {
-
-        var pyService = new PythonEnvironmentService();
-
-        // Set the execution path based on user selection
-        string pythonPath = selectedExecution switch
-        {
-            Execution.cpu => Cache.CpuMlPythonPath,
-            Execution.dml => Cache.DirectMlPythonPath,
-            Execution.cuda => Cache.Cuda11MlPythonPath,
-            Execution.cuda12 => Cache.Cuda12MlPythonPath,
-            _ => Cache.CpuMlPythonPath // Default to CPU if something goes wrong
-        };
-
-        // Initialize the Python environment
-        pyService.InitializePythonEnvironment(pythonPath);
-
-        // Convert model
+        var spinner = new LoaderHelper(DialogService, "Conversion To ONNX");
+        spinner.ShowWaitSpinner();
         try
         {
-            string outputPath = GetOnnxDownloadLocation();
 
-            FileHelper.DeleteLocation(outputPath);
-            outputPath = GetOnnxDownloadLocation();
+            var pyService = new PythonEnvironmentService();
 
-            var processId = pyService.RunOnnxConversion(
-                _modelInfo.ModelPath,
-                outputPath,
-                selectedPrecision,
-                selectedExecution
-            );
-
-            await pyService.MonitorProcessAsync(processId, TimeSpan.FromSeconds(2));
-
-            if (FileHelper.AreFilesInDirectory(outputPath))
+            // Set the execution path based on user selection
+            string pythonPath = selectedExecution switch
             {
-                // Calculate the total size of the new folder in GB
-                double totalSizeGB = FileHelper.CalculateFolderSize(outputPath) / (1024.0 * 1024.0 * 1024.0);
+                Execution.cpu => Cache.CpuMlPythonPath,
+                Execution.dml => Cache.DirectMlPythonPath,
+                Execution.cuda => Cache.Cuda11MlPythonPath,
+                Execution.cuda12 => Cache.Cuda12MlPythonPath,
+                _ => Cache.CpuMlPythonPath // Default to CPU if something goes wrong
+            };
 
-                // Create the ReadMe.txt file
-                string readmeFilePath = Path.Combine(outputPath, "ReadMe.txt");
-                File.WriteAllText(readmeFilePath, $@"
+            // Initialize the Python environment
+            pyService.InitializePythonEnvironment(pythonPath);
+
+            // Convert model
+            try
+            {
+                string outputPath = GetOnnxDownloadLocation();
+
+                FileHelper.DeleteLocation(outputPath);
+                outputPath = GetOnnxDownloadLocation();
+
+                var processId = pyService.RunOnnxConversion(
+                    _modelInfo.ModelPath,
+                    outputPath,
+                    selectedPrecision,
+                    selectedExecution
+                );
+
+                await pyService.MonitorProcessAsync(processId, TimeSpan.FromSeconds(2));
+
+                if (FileHelper.AreFilesInDirectory(outputPath))
+                {
+                    // Calculate the total size of the new folder in GB
+                    double totalSizeGB = FileHelper.CalculateFolderSize(outputPath) / (1024.0 * 1024.0 * 1024.0);
+
+                    // Create the ReadMe.txt file
+                    string readmeFilePath = Path.Combine(outputPath, "ReadMe.txt");
+                    File.WriteAllText(readmeFilePath, $@"
 URL: {_modelInfo.ProjectUrl}
 Owner: {_modelInfo.Owner}
 Repo: {_modelInfo.Repo}
@@ -130,22 +139,34 @@ Precision: {selectedPrecision.ToString()}
 Execution: {selectedExecution.ToString()}
 ");
 
-                _modelInfo.precision = selectedPrecision.ToString();
-                _modelInfo.execution = selectedExecution.ToString();
+                    _modelInfo.precision = selectedPrecision.ToString();
+                    _modelInfo.execution = selectedExecution.ToString();
 
-                _modelInfo.TotalSizeGB = totalSizeGB;
-                await Task.Delay(1000); // sometimes giving the file system a breather prevents errors.
-                string modelInfoFilePath = Path.Combine(outputPath, "ModelInfo.json");
-                string json = JsonSerializer.Serialize(_modelInfo, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(modelInfoFilePath, json);
+                    _modelInfo.TotalSizeGB = totalSizeGB;
+                    await Task.Delay(1000); // sometimes giving the file system a breather prevents errors.
+                    string modelInfoFilePath = Path.Combine(outputPath, "ModelInfo.json");
+                    string json = JsonSerializer.Serialize(_modelInfo, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(modelInfoFilePath, json);
 
-                MudDialog.Close();
+                    MudDialog.Close();
+                }
+                else
+                {
+                    var options = new DialogOptions() { CloseOnEscapeKey = true, BackdropClick = true, CloseButton = true };
+                    // Open the spinner dialog and store the dialog reference
+                    DialogService.Show<ErrorConversionPopup>("Error", options);
+                }
+
             }
-
+            catch (Exception ex)
+            {
+                // Handle any errors and display them
+            }
         }
-        catch (Exception ex)
+        finally
         {
-            // Handle any errors and display them
+            spinner.CloseWaitSpinner();
+            FileHelper.GetCleanTempPath();
         }
     }
 }

@@ -1,9 +1,5 @@
 import os
 import sys
-import shutil
-import argparse
-import runpy
-import importlib
 
 # Get the current script directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,13 +12,18 @@ site_packages_dir = os.path.join(lib_dir, 'site-packages')
 sys.path.insert(0, lib_dir)
 sys.path.insert(0, site_packages_dir)
 
+import shutil
+import argparse
+import runpy
+import importlib
+
 # Function to clear module cache and release potential locks
 def reset_module_cache(module_name):
     if module_name in sys.modules:
         print(f"Reloading module: {module_name} to release resources.")
         importlib.reload(sys.modules[module_name])
 
-def run_model_builder(input_dir, output_dir, precision, execution):
+def run_model_builder(input_dir, output_dir, precision, execution, cache_dir=None):
     """
     Function to directly run the ONNX model builder by invoking the onnxruntime_genai module.
     """
@@ -34,6 +35,10 @@ def run_model_builder(input_dir, output_dir, precision, execution):
         "-p", precision,
         "-e", execution
     ]
+    
+    # Add the cache directory argument if provided
+    if cache_dir:
+        sys.argv.extend(["-c", cache_dir])
 
     # Run the 'onnxruntime_genai.models.builder' module directly within the script
     try:
@@ -92,15 +97,19 @@ def main():
     parser.add_argument('-o', '--output', type=str, required=True, help='Path to output ONNX model')
     parser.add_argument('-p', '--precision', type=str, choices=['int4', 'fp16', 'fp32'], default='int4', help='Precision for model conversion')
     parser.add_argument('-e', '--execution', type=str, choices=['cpu', 'cuda', 'dml'], required=True, help='Execution provider')
+    
+    # Add an optional argument for the cache directory
+    parser.add_argument('-c', '--cache_dir', type=str, help='Cache directory for temporary files')
 
     # Parse the provided arguments
     args = parser.parse_args()
 
     # Run the model builder using the provided arguments
-    run_model_builder(args.input, args.output, args.precision, args.execution)
+    run_model_builder(args.input, args.output, args.precision, args.execution, args.cache_dir)
 
     # Handle tokenizer and file management after the conversion
     handle_tokenizer_and_files(args.input, args.output)
+    
 
 if __name__ == "__main__":
     main()

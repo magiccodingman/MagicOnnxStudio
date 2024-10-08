@@ -17,7 +17,13 @@
                          ButtonDisabledFunc="@(x => onnxModels == null
 || !onnxModels.Any()
 || !onnxModels.Any(y => y.ProjectUrl.Equals(x.ProjectUrl, StringComparison.OrdinalIgnoreCase)))" />
-        <PropertyColumn Property="x => x.Repo" Title="Repo" Sortable="true" Filterable="true" />
+
+        <PropertyColumn Property="x => x.Repo" Title="Repo" Sortable="true" Filterable="true">
+            <CellTemplate>
+                <MudNavLink Href="@context.Item.ProjectUrl">@context.Item.Repo</MudNavLink>
+
+            </CellTemplate>
+        </PropertyColumn>
         <PropertyColumn Property="x => x.Owner" Title="Owner" Sortable="true" Filterable="true" />
         <PropertyColumn Property="x => x.TotalSizeGB" Title="Size (GB)" Sortable="true" Filterable="true">
             <CellTemplate>
@@ -33,31 +39,31 @@
                 {
                     <MudTooltip Text="Convert">
                         <MudIconButton Icon="@Icons.Material.Filled.ResetTv"
-                                   Color="Color.Primary" OnClick="@(() => ConvertModelToOnnx(context.Item))" />
+                                       Color="Color.Primary" OnClick="@(() => ConvertModelToOnnx(context.Item))" />
                     </MudTooltip>
                 }
-                else if(context.Item.IsGGUF)
+                else if (context.Item.IsGGUF)
                 {
                     <MudTooltip Text="GGUF Not Currently Supported">
                         <MudIconButton Icon="@Icons.Material.Filled.ResetTv"
-                                       Color="Color.Error"/>
+                                       Color="Color.Error" />
                     </MudTooltip>
                 }
                 else
                 {
-                <MudTooltip Text="Unsupported Model Type">
-                    <MudIconButton Icon="@Icons.Material.Filled.ResetTv"
-                                   Color="Color.Error" />
-                </MudTooltip>
+                    <MudTooltip Text="Unsupported Model Type">
+                        <MudIconButton Icon="@Icons.Material.Filled.ResetTv"
+                                       Color="Color.Error" />
+                    </MudTooltip>
                 }
                 <MudTooltip Text="Open File Explorer">
                     <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
                                    Color="Color.Primary" OnClick="@(() => FileHelper.OpenFolderInExplorer(context.Item.ModelPath))" />
-
+                </MudTooltip>
                     <MudTooltip Text="Delete">
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                        OnClick="@(() => DeleteAiModel(context.Item))" />
-                    </MudTooltip>
+                    
                 </MudTooltip>
             </CellTemplate>
         </TemplateColumn>
@@ -79,6 +85,11 @@
                         <PropertyColumn Property="x => x.TotalSizeGB_Rounded2" Title="Size (GB)" />
                         <TemplateColumn Context="miniCon">
                             <CellTemplate>
+                                <MudTooltip Text="AI Chat Test">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Chat"
+                                                   Color="Color.Primary" OnClick="@(() => AiLaunchHelper.RunAiModel(miniCon.Item))" />
+                                </MudTooltip>
+
                                 <MudTooltip Text="Open File Explorer">
                                     <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
                                                    Color="Color.Primary" OnClick="@(() => FileHelper.OpenFolderInExplorer(miniCon.Item.ModelPath))" />
@@ -86,7 +97,7 @@
 
                                 <MudTooltip Text="Delete">
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                                    OnClick="@(() => DeleteOnnxModel(context.Item))" />
+                                                   OnClick="@(() => DeleteOnnxModel(miniCon.Item))" />
                                 </MudTooltip>
                             </CellTemplate>
                         </TemplateColumn>
@@ -211,7 +222,7 @@
                 MaxWidth = MaxWidth.Medium
             };
 
-        DialogParameters parameters = new DialogParameters { ["_modelInfo"] = modelInfo };
+        DialogParameters parameters = new DialogParameters { ["_modelInfo"] = modelInfo, ["_deleteOnlyModel"] = true };
 
         var dialog = await DialogService.ShowAsync<DeleteModel>($"Deleting: {modelInfo.Repo}", parameters, options);
         var result = await dialog.Result;

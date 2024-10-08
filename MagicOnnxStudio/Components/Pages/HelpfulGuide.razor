@@ -1,0 +1,47 @@
+﻿@page "/HelpfulGuide"
+
+@page "/guide"
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4">
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h4" GutterBottom="true">Understanding Safetensor Models and ONNX: A Guide for AI Beginners</MudText>
+
+        <MudText Typo="Typo.body1" GutterBottom="true">
+            When working with AI models, you may come across safetensor models, which are a modern, secure way to handle and use AI models.
+            However, these models are typically designed to run in Python environments. The reason for this is that safetensors are structured
+            to prioritize security and efficiency within Python-based frameworks, but they aren't fully optimized for direct use in other environments
+            or production pipelines.
+        </MudText>
+
+        <MudText Typo="Typo.body1" GutterBottom="true">
+            Unlike safetensor models, ONNX models are more versatile and are becoming the standard for AI model deployment in production.
+            ONNX (Open Neural Network Exchange) models are effectively precompiled, which means they’re easier to integrate and run in a variety of
+            environments beyond just Python. ONNX acts as a universal protocol, allowing AI models to be transferred between different platforms and systems
+            smoothly, making them ideal for real-world applications.
+        </MudText>
+
+        <MudText Typo="Typo.h5" GutterBottom="true">How This Application Helps You</MudText>
+
+        <MudText Typo="Typo.body1" GutterBottom="true">
+            The application I’ve created is designed to simplify the process of converting safetensor models to ONNX format, making it easy for you to
+            test the ONNX models you've converted. It’s tailored for production use, where ONNX shines. While my application focuses on ONNX, it’s worth
+            mentioning that if you want to test safetensor models directly, there are already some excellent tools available for that.
+        </MudText>
+
+        <MudText Typo="Typo.body1" GutterBottom="true">
+            One project you should check out is oobabooga's text-generation-webui, an open-source tool that’s ideal for testing safetensor models in Python.
+        </MudText>
+
+        <MudText Typo="Typo.h5" GutterBottom="true">Learn More</MudText>
+
+        <MudText Typo="Typo.body1" GutterBottom="true">
+            For more resources on AI, including tips on using ONNX models, articles, and updates, feel free to visit my website at
+            <MudLink Href="https://magiccodingman.com" Target="_blank">magiccodingman.com</MudLink>. Explore the AI section for helpful guides and more!
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+
+@code {
+
+}

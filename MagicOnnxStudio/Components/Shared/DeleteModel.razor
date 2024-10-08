@@ -1,4 +1,5 @@
-﻿<MudDialog>
+﻿@inject MudBlazor.IDialogService DialogService
+<MudDialog>
     <DialogContent>
         @if (!isDeleting)
         {
@@ -13,16 +14,22 @@
             }
 
             <MudStack Spacing="2">
-                <!-- Buttons for the different delete options -->
-                <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteAllClick">Delete All (AI Model & ONNX Models)</MudButton>
-
-                @if (onnxModels != null && onnxModels.Any())
+                @if (_deleteOnlyModel == false)
                 {
-                    <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteONNXClick">Delete Only ONNX Models</MudButton>
+                    <!-- Buttons for the different delete options -->
+                    <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteAllClick">Delete All (AI Model & ONNX Models)</MudButton>
+
+                    @if (onnxModels != null && onnxModels.Any())
+                    {
+                        <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteONNXClick">Delete Only ONNX Models</MudButton>
+                    }
+
+                    <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteAIClick">Delete Only AI Model</MudButton>
                 }
-
-                <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteAIClick">Delete Only AI Model</MudButton>
-
+                else
+                {
+                    <MudButton Disabled="@isDeleting" Variant="Variant.Filled" Color="Color.Error" OnClick="OnDeleteAIClick">Delete ONNX Model</MudButton>
+                }
                 <!-- Cancel Button -->
                 <MudButton Disabled="@isDeleting" Variant="Variant.Outlined" OnClick="Cancel">Cancel</MudButton>
             </MudStack>
@@ -45,36 +52,67 @@
     public DownloadedModelInfo _modelInfo { get; set; }
 
     [Parameter]
+    public bool _deleteOnlyModel { get; set; } = false;
+
+    [Parameter]
     public List<DownloadedModelInfo> onnxModels { get; set; } = new List<DownloadedModelInfo>();
 
     private bool isDeleting = false;
 
     private async Task OnDeleteAllClick()
     {
-        isDeleting = true;
-        StateHasChanged(); // Force UI update to show the spinner
+        var spinner = new LoaderHelper(DialogService, "Conversion To ONNX");
+        spinner.ShowWaitSpinner();
+        try
+        {
+            isDeleting = true;
+            StateHasChanged(); // Force UI update to show the spinner
 
-        await Task.Delay(500); // Simulate delay for demo purposes
-        DeleteAll();
+            await Task.Delay(500); // Simulate delay for demo purposes
+            DeleteAll();
+        }
+        finally
+        {
+            spinner.CloseWaitSpinner();
+        }
     }
 
     private async Task OnDeleteAIClick()
     {
-        isDeleting = true;
-        StateHasChanged(); // Force UI update to show the spinner
+        var spinner = new LoaderHelper(DialogService, "Conversion To ONNX");
+        spinner.ShowWaitSpinner();
+        try
+        {
+            isDeleting = true;
+            StateHasChanged(); // Force UI update to show the spinner
 
-        await Task.Delay(500); // Simulate delay for demo purposes
-        DeleteAIModel();
+            await Task.Delay(500); // Simulate delay for demo purposes
+            DeleteAIModel();
+        }
+        finally
+        {
+            spinner.CloseWaitSpinner();
+        }
     }
 
     private async Task OnDeleteONNXClick()
     {
-        isDeleting = true;
-        StateHasChanged(); // Force UI update to show the spinner
+        var spinner = new LoaderHelper(DialogService, "Conversion To ONNX");
+        spinner.ShowWaitSpinner();
+        try
+        {
+            isDeleting = true;
+            StateHasChanged(); // Force UI update to show the spinner
 
-        await Task.Delay(500); // Simulate delay for demo purposes
-        DeleteONNXModels();
+            await Task.Delay(500); // Simulate delay for demo purposes
+            DeleteONNXModels();
+        }
+        finally
+        {
+            spinner.CloseWaitSpinner();
+        }
     }
+
 
     private void DeleteAll()
     {

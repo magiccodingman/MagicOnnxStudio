@@ -12,7 +12,7 @@ namespace MagicOnnxStudio
     public static class MauiProgram
     {
         const int WindowWidth = 1280;
-        const int WindowHeight = 720;
+        const int WindowHeight = 800;
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();

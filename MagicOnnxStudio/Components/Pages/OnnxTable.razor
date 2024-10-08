@@ -1,0 +1,163 @@
+﻿@page "/OnnxTable"
+@using MagicOnnxStudio.Components.Shared
+@using static MagicOnnxStudio.Services.PythonEnvironmentService
+@inject MudBlazor.IDialogService DialogService
+
+<MagicOnnxStudio.Components.Shared.AvailableStorageBar @ref="diskProgressComponent"></MagicOnnxStudio.Components.Shared.AvailableStorageBar>
+
+<div style="padding-bottom:20px;">
+    <MudText>Magic ONNX Studio automatically updates with the ONNX Runtime updates. If you want to chat with an AI model, be sure that the model is listed as supported on the official link:</MudText>
+    <MudLink Href="https://onnxruntime.ai/docs/genai/howto/build-model.html" Target="_blank">
+        https://onnxruntime.ai/docs/genai/howto/build-model.html
+    </MudLink>
+</div>
+
+<MudDataGrid T="DownloadedModelInfo" MultiSelection="true" Items="@onnxModels" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">ONNX AI Models</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Repo" Title="Repo" Sortable="true" Filterable="true">
+            <CellTemplate>
+                <MudTooltip Text="@($"Owner: {@context.Item.Owner}")">
+                    <MudNavLink Href="@context.Item.ProjectUrl">@context.Item.Repo</MudNavLink>
+                </MudTooltip>
+            </CellTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="x => x.execution" Title="Exec." Sortable="true" Filterable="true">
+            <CellTemplate>
+                <MudStack Row>
+                    @($"{context.Item.execution.ToString()}")
+                </MudStack>
+            </CellTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="x => x.precision" Title="Prec." Sortable="true" Filterable="true">
+            <CellTemplate>
+                <MudStack Row>
+                    @($"{context.Item.precision.ToString()}")
+                </MudStack>
+            </CellTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="x => x.TotalSizeGB" Title="Size (GB)" Sortable="true" Filterable="true">
+            <CellTemplate>
+                <MudStack Row>
+                    @($"{Math.Round(context.Item.TotalSizeGB, 2)}")
+                </MudStack>
+            </CellTemplate>
+        </PropertyColumn>
+
+        <TemplateColumn>
+            <CellTemplate>
+                <MudTooltip Text="AI Chat Test">
+                    <MudIconButton Icon="@Icons.Material.Filled.Chat"
+                                   Color="Color.Primary" OnClick="@(() => AiLaunchHelper.RunAiModel(context.Item))" />
+                </MudTooltip>
+
+                <MudTooltip Text="Open File Explorer">
+                    <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                   Color="Color.Primary" OnClick="@(() => FileHelper.OpenFolderInExplorer(context.Item.ModelPath))" />
+                </MudTooltip>
+
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       OnClick="@(() => DeleteOnnxModel(context.Item))" />
+                    
+                </MudTooltip>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="DownloadedModelInfo" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private string _searchString;
+
+    private MagicOnnxStudio.Components.Shared.AvailableStorageBar diskProgressComponent;
+    // This method triggers the refresh action from the parent
+    private void TriggerDiskProgressUpdate()
+    {
+        // Call the delegate to refresh the child component
+        diskProgressComponent?.RefreshProgress?.Invoke();
+    }
+
+    
+
+    string downloadPath { get; set; }
+    string onnxPath { get; set; }
+    //private List<DownloadedModelInfo> models { get; set; } = new List<DownloadedModelInfo>();
+    private List<DownloadedModelInfo> onnxModels { get; set; } = new List<DownloadedModelInfo>();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Startup();
+        }
+    }
+
+    private void Startup()
+    {
+        downloadPath = new DownloadHelper().EnsureAiModelDownloadsFolder();
+        onnxPath = new DownloadHelper().EnsureAiModelDefaultOutputFolder();
+        //models = ModelInfoFinder.GetDownloadedModelInfos()??new List<DownloadedModelInfo>();
+        onnxModels = ModelInfoFinder.GetOnnxConvertedModelInfos()??new List<DownloadedModelInfo>();
+
+        TriggerDiskProgressUpdate();
+        StateHasChanged();
+    }
+
+    private Func<DownloadedModelInfo, bool> _quickFilter => x =>
+       {
+           if (string.IsNullOrWhiteSpace(_searchString))
+               return true;
+
+           if (!string.IsNullOrWhiteSpace(x.Repo))
+           {
+               string normalizedRepoName = x.Repo.Replace("_", " ").Replace("-", " ");
+               if (normalizedRepoName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                   return true;
+               if (x.Repo.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                   return true;
+           }
+
+           if (!string.IsNullOrWhiteSpace(x.Owner))
+           {
+               string normalizedOwnerName = x.Owner.Replace("_", " ").Replace("-", " ");
+               if (normalizedOwnerName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                   return true;
+               if (x.Owner.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+                   return true;
+           }
+
+           return false;
+       };
+
+
+    private async Task DeleteOnnxModel(DownloadedModelInfo modelInfo)
+    {
+        var options = new DialogOptions
+            {
+                CloseButton = false, // No close button
+                BackdropClick = false,
+                MaxWidth = MaxWidth.Medium
+            };
+
+        DialogParameters parameters = new DialogParameters { ["_modelInfo"] = modelInfo };
+
+        var dialog = await DialogService.ShowAsync<DeleteModel>($"Deleting: {modelInfo.Repo}", parameters, options);
+        var result = await dialog.Result;
+
+        if (result?.Canceled == false)
+        {
+            Startup();
+        }
+
+    }
+}

@@ -1,0 +1,25 @@
+﻿<style>
+    .spinner-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%; /* or adjust according to your layout */
+        min-width: 120px; /* Set minimum width */
+        min-height: 120px; /* Set minimum height */
+        padding: 16px; /* Optional padding for better visual separation */
+    }
+
+</style>
+
+<MudDialog>
+    <DialogContent>
+        <div class="spinner-container">
+            <MudProgressCircular Color="Color.Primary" Style="height:70px;width:70px;" Indeterminate="true" />
+        </div>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+}

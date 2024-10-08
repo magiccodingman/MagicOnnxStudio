@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Management;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -293,8 +294,10 @@ namespace MagicOnnxStudio.Services
             if (execution == Execution.cuda12)
                 executionString = "cuda";
 
+            string tempPath = FileHelper.GetCleanTempPath();
+
             // The command to be executed
-            string fullCommand = $"-m onnx_runner -i \"{inputDirectory}\" -o \"{outputDirectory}\" -p {precision.ToString()} -e {execution.ToString()}";
+            string fullCommand = $"-m onnx_runner -i \"{inputDirectory}\" -o \"{outputDirectory}\" -p {precision.ToString()} -e {execution.ToString()} -c \"{tempPath}\"";
 
             // Initialize the process to run python with the command
             ProcessStartInfo startInfo = new ProcessStartInfo
@@ -304,7 +307,7 @@ namespace MagicOnnxStudio.Services
                 UseShellExecute = true,    // Allow the cmd window to appear
                 CreateNoWindow = false,    // Show the cmd window
                 WorkingDirectory = _PythonPath, // Set working directory to the Python environment
-                Verb = "runas"
+                //Verb = "runas"
             };
 
             string id = "";
@@ -318,6 +321,78 @@ namespace MagicOnnxStudio.Services
 
             return id;
         }
+
+
+
+        private static readonly object _lockObject = new object(); // Lock object for thread safety
+        private static List<int> _processIds = new List<int>(); // Static list to store process IDs
+
+        public void RunAiModelTest(string modelDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(_PythonPath))
+            {
+                throw new InvalidOperationException("Python environment path is not set.");
+            }
+
+            // Path to the python.exe executable in the Python environment
+            string pythonExePath = Path.Combine(_PythonPath, "python.exe");
+
+            if (!File.Exists(pythonExePath))
+            {
+                throw new FileNotFoundException("python.exe not found.");
+            }
+
+            // The command to be executed
+            string fullCommand = $"-m chat_script --model \"{modelDirectory}\"";
+
+            lock (_lockObject) // Lock for thread safety
+            {
+                // Check all stored process IDs to see if they are still running
+                List<int> processesToRemove = new List<int>();
+                foreach (int processId in _processIds)
+                {
+                    try
+                    {
+                        Process existingProcess = Process.GetProcessById(processId);
+                        if (!existingProcess.HasExited) // Kill the process if it is still running
+                        {
+                            existingProcess.Kill();
+                            existingProcess.WaitForExit(); // Ensure the process has exited
+                        }
+                        processesToRemove.Add(processId); // Mark this process ID for removal
+                    }
+                    catch (ArgumentException)
+                    {
+                        // Process does not exist or has already exited, so we don't need to handle it
+                        processesToRemove.Add(processId); // Mark this process ID for removal
+                    }
+                }
+
+                // Remove old process IDs from the list
+                foreach (int processId in processesToRemove)
+                {
+                    _processIds.Remove(processId);
+                }
+
+                // Initialize the process to run python with the command
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = pythonExePath, // Directly use the Python executable
+                    Arguments = fullCommand,
+                    UseShellExecute = true, // Allow the cmd window to appear
+                    CreateNoWindow = false, // Show the cmd window
+                    WorkingDirectory = _PythonPath // Set working directory to the Python environment
+                };
+
+                // Start the new process
+                using (Process process = new Process { StartInfo = startInfo })
+                {
+                    process.Start();
+                    _processIds.Add(process.Id); // Add the new process ID to the list
+                }
+            }
+        }
+
 
         /*public string RunOnnxConversion(string inputDirectory, string outputDirectory, Precision precision, Execution execution)
         {

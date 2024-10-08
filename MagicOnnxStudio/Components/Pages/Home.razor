@@ -1,4 +1,36 @@
 ﻿@page "/home"
+<MudImage Src="./images/Welcome.webp"
+          Fluid="true"
+          Alt="Welcome Image Not Found" Elevation="25" Class="rounded-lg" />
+
+<MudText Typo="Typo.h5">
+    Welcome to Magic ONNX Studio, a platform designed to make working with AI models and the ONNX Runtime significantly easier for developers. The goal of Magic ONNX Studio is to streamline and simplify the process of using the official ONNX runtime, which can often involve complex setup steps and various environment configurations.
+</MudText>
+<br />
+<MudText Typo="Typo.body1">
+    Traditionally, setting up ONNX Runtime involves managing multiple Python environments—whether for CPU, DirectML, or CUDA versions. These processes are not only tedious but also prone to errors. To solve this, Magic ONNX Studio automates these steps by embedding Python environments, configuring them for you, and ensuring that all your ONNX libraries stay up-to-date with every run of the app.
+</MudText>
+<br />
+<MudText Typo="Typo.body1">
+    With Magic ONNX Studio, you can easily download, organize, and convert AI models. The “Download Models” page allows you to target a model of your choice and prepares it for you—saving time and effort by documenting and organizing it automatically. Once downloaded, the model will be added to a simple, user-friendly GUI table, making it easy to view, convert, and manage.
+</MudText>
+<br />
+<MudText Typo="Typo.body1">
+    The "Convert To ONNX" page offers a guided interface that walks you through the model conversion process, explaining each step in detail. Additionally, the app provides an "ONNX View & Chat" page where you can explore your converted models, test them in a chat interface, and ensure everything is functioning as expected.
+</MudText>
+<br />
+<MudText Typo="Typo.body1">
+    While most common AI models are supported through the ONNX runtime, some may fall outside the platform’s current capabilities. Be sure to consult the official ONNX Runtime site for specific model support details. Future updates will expand the scope of supported models and features, including potential support for GGUF files and enhanced chat functionality for CUDA models.
+</MudText>
+<br />
+<MudText Typo="Typo.body1">
+    Whether you're an experienced developer or just starting with AI, Magic ONNX Studio provides the tools to simplify your workflow—helping you organize, document, download, and convert models with ease. For more information, check out the open-source code on GitHub at
+    <MudLink Href="https://github.com/magiccodingman/MagicOnnxStudio">https://github.com/magiccodingman/MagicOnnxStudio</MudLink>, and visit our website for a beginner-friendly AI guide:
+</MudText>
+<br />
+<MudText Typo="Typo.body1">
+    I built this tool because, like many, I found the integration between production development and AI challenging. My goal is to bridge that gap and make AI accessible to everyone. Welcome aboard!
+</MudText>
 
 @code {
 

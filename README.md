@@ -4,14 +4,14 @@ Easy GUI interface to convert and test AI models using DirectML, Cuda, and CPU.
 If you want to convert an AI model to DirectML, Cuda, or CPU, you normally have to have 3 separate python instances. Each python instance needs a different setup. Then to test the AI models, you have to test each with ONNX libraries that also must be in their own separate instances. Lets make this process easier! Once place, one application, one instance!
 
 ## Minimum Hardware Requirements
-OS: Windows 10/11 x64
+OS: Windows 10/11 x64 && ARM64
 
 RAM: 16 GB
 
 Available Space: 150 GB
 
 ## Recommended Hardware Requirements
-OS: Windows 10/11 x64
+OS: Windows 10/11 x64 && ARM64
 
 RAM: 128 GB
 

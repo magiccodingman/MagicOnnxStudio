@@ -28,10 +28,9 @@
             if (isDebug == false || (forceDisableStartup == false && isDebug == true))
             {
                 await ShowPythonSetupPopup();
-                await ShowGitSetupPopup();
-
-                Navigation.NavigateTo("./home");
+                await ShowGitSetupPopup();               
             }
+            Navigation.NavigateTo("./home");
         }
     }
 

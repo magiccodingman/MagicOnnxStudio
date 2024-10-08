@@ -1,6 +1,7 @@
 ﻿@page "/DownloadModels"
 @using System.Text.Json
 @using System.Diagnostics
+@inject MudBlazor.IDialogService DialogService
 <MagicOnnxStudio.Components.Shared.AvailableStorageBar @ref="diskProgressComponent"></MagicOnnxStudio.Components.Shared.AvailableStorageBar>
 
 <div style="padding-top:20px;padding-bottom:20px;">
@@ -12,7 +13,7 @@
 </div>
 
 <div style="padding-bottom:20px;">
-<MudText>Can only convert AI models to ONNX that're listed on the following official link:</MudText>
+    <MudText>Can only convert AI models to ONNX that're listed on the following official link:</MudText>
     <MudLink Href="https://onnxruntime.ai/docs/genai/howto/build-model.html" Target="_blank">
         https://onnxruntime.ai/docs/genai/howto/build-model.html
     </MudLink>
@@ -48,7 +49,7 @@ else if (isDownloading == false)
 }
 else
 {
-    <MudText Color="Color.Primary" Typo="Typo.h6"><MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" /> Downloading</MudText>
+    <MudText Color="Color.Primary" Typo="Typo.h6">Downloading</MudText>
 }
 
 
@@ -130,65 +131,75 @@ else
 
     private async Task CloneRepository()
     {
-        // Define the temporary folder location
-        string temporaryLocation = Path.Combine(downloadPath, "temp");
+        var spinner = new LoaderHelper(DialogService, "Downloading AI Model");
+        spinner.ShowWaitSpinner();
+        try
+        {
 
-        FileHelper.DeleteLocation(temporaryLocation);
+            // Define the temporary folder location
+            string temporaryLocation = Path.Combine(downloadPath, "temp");
 
-        isDownloading = true;
-        StateHasChanged();
-        await Task.Delay(5);
-        StateHasChanged();
+            FileHelper.DeleteLocation(temporaryLocation);
 
-
-        // Create the temp directory
-        Directory.CreateDirectory(temporaryLocation);
-
-        // Clone the repository
-        await new GitHelper().CloneRepositoryAsync(ModelInfo.ProjectUrl, temporaryLocation);
-
-        // Create the new target folder based on owner and repo
-        string newFolderLocation = Path.Combine(downloadPath, $"o-{ModelInfo.Owner}--r-{ModelInfo.Repo}");
-
-        FileHelper.DeleteLocation(newFolderLocation);
+            isDownloading = true;
+            StateHasChanged();
+            await Task.Delay(5);
+            StateHasChanged();
 
 
-        Directory.CreateDirectory(newFolderLocation);
+            // Create the temp directory
+            Directory.CreateDirectory(temporaryLocation);
 
-        // Copy all files and directories from temp to new folder
-        CopyDirectory(temporaryLocation, newFolderLocation);
+            // Clone the repository
+            await new GitHelper().CloneRepositoryAsync(ModelInfo.ProjectUrl, temporaryLocation);
 
-        // Calculate the total size of the new folder in GB
-        double totalSizeGB = FileHelper.CalculateFolderSize(newFolderLocation) / (1024.0 * 1024.0 * 1024.0);
+            // Create the new target folder based on owner and repo
+            string newFolderLocation = Path.Combine(downloadPath, $"o-{ModelInfo.Owner}--r-{ModelInfo.Repo}");
 
-        FileHelper.DeleteLocation(temporaryLocation);
+            FileHelper.DeleteLocation(newFolderLocation);
 
-        // Create the ReadMe.txt file
-        string readmeFilePath = Path.Combine(newFolderLocation, "ReadMe.txt");
-        File.WriteAllText(readmeFilePath, $@"
+
+            Directory.CreateDirectory(newFolderLocation);
+
+            // Copy all files and directories from temp to new folder
+            CopyDirectory(temporaryLocation, newFolderLocation);
+
+            // Calculate the total size of the new folder in GB
+            double totalSizeGB = FileHelper.CalculateFolderSize(newFolderLocation) / (1024.0 * 1024.0 * 1024.0);
+
+            FileHelper.DeleteLocation(temporaryLocation);
+
+            // Create the ReadMe.txt file
+            string readmeFilePath = Path.Combine(newFolderLocation, "ReadMe.txt");
+            File.WriteAllText(readmeFilePath, $@"
 URL: {ModelInfo.ProjectUrl}
 Owner: {ModelInfo.Owner}
 Repo: {ModelInfo.Repo}
 Total Size: {totalSizeGB:F2} GB
 ");
 
-        ModelInfo.TotalSizeGB = totalSizeGB;
-        await Task.Delay(1000); // sometimes giving the file system a breather prevents errors.
-        string modelInfoFilePath = Path.Combine(newFolderLocation, "ModelInfo.json");
-        string json = JsonSerializer.Serialize(ModelInfo, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(modelInfoFilePath, json);
+            ModelInfo.TotalSizeGB = totalSizeGB;
+            await Task.Delay(1000); // sometimes giving the file system a breather prevents errors.
+            string modelInfoFilePath = Path.Combine(newFolderLocation, "ModelInfo.json");
+            string json = JsonSerializer.Serialize(ModelInfo, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(modelInfoFilePath, json);
 
-        string gitPath = Path.Combine(newFolderLocation, ".git");
-        if (Directory.Exists(gitPath))
-        {
-            FileHelper.DeleteLocation(gitPath);
+            string gitPath = Path.Combine(newFolderLocation, ".git");
+            if (Directory.Exists(gitPath))
+            {
+                FileHelper.DeleteLocation(gitPath);
+            }
+
+            ResetRepoChoice();
+            TriggerDiskProgressUpdate();
         }
-
-        ResetRepoChoice();
-        TriggerDiskProgressUpdate();
+        finally
+        {
+            spinner.CloseWaitSpinner();
+        }
     }
 
-    
+
 
     private void CopyDirectory(string sourceDir, string targetDir)
     {
@@ -208,7 +219,7 @@ Total Size: {totalSizeGB:F2} GB
         }
     }
 
-    
+
 
     // This method triggers the refresh action from the parent
     private void TriggerDiskProgressUpdate()
