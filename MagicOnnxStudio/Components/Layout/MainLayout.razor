@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider Theme="@_theme" IsDarkMode="Cache._isDarkMode" />
+<MudThemeProvider Theme="@_theme" IsDarkMode="AppCache._isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -52,7 +52,7 @@
 
     private void DarkModeToggle()
     {
-        Cache._isDarkMode = !Cache._isDarkMode;
+        AppCache._isDarkMode = !AppCache._isDarkMode;
     }
 
     private readonly PaletteLight _lightPalette = new()
@@ -94,7 +94,7 @@
             OverlayLight = "#1e1e2d80",
         };
 
-    public string DarkLightModeButtonIcon => Cache._isDarkMode switch
+    public string DarkLightModeButtonIcon => AppCache._isDarkMode switch
     {
         true => Icons.Material.Rounded.AutoMode,
         false => Icons.Material.Outlined.DarkMode,

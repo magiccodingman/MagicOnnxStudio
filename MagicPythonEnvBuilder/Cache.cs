@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MagicOnnxStudio
+namespace MagicPythonEnvBuilder
 {
     public static class Cache
     {
@@ -12,6 +12,6 @@ namespace MagicOnnxStudio
         public static string Cuda11MlPythonPath { get; set; }
         public static string Cuda12MlPythonPath { get; set; }
         public static string CpuMlPythonPath { get; set; }
-        public static bool _isDarkMode = true;
+        
     }
 }

@@ -1,11 +1,11 @@
 ﻿using MagicOnnxStudio.Models;
-using MagicOnnxStudio.Services;
+using MagicPythonEnvBuilder;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static MagicOnnxStudio.Services.PythonEnvironmentService;
+using static MagicPythonEnvBuilder.PythonEnvironmentService;
 
 namespace MagicOnnxStudio.Helpers
 {

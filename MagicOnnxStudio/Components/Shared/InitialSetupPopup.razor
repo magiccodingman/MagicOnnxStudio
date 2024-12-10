@@ -49,69 +49,17 @@
         }
     }
 
-    private bool IsLongPathsEnabled()
-    {
-        try
-        {
-            using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\FileSystem", false))
-            {
-                if (key != null)
-                {
-                    object value = key.GetValue("LongPathsEnabled");
-                    return value != null && (int)value == 1;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Error checking LongPathsEnabled status: " + ex.Message);
-        }
-        return false;
-    }
-
-    private void EnableLongPaths()
-    {
-        try
-        {
-            // Command to add/modify the LongPathsEnabled registry key
-            string command = "reg add \"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\" /v LongPathsEnabled /t REG_DWORD /d 1 /f";
-
-            ProcessStartInfo processInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c {command}",
-                    Verb = "runas", // Runs the command as an administrator
-                    UseShellExecute = true,
-                    CreateNoWindow = true
-                };
-
-            Process process = Process.Start(processInfo);
-            process.WaitForExit();
-
-            if (process.ExitCode == 0)
-            {
-                Console.WriteLine("LongPathsEnabled successfully enabled.");
-            }
-            else
-            {
-                Console.WriteLine("Failed to enable LongPathsEnabled. Exit Code: " + process.ExitCode);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Error enabling LongPathsEnabled: " + ex.Message);
-        }
-    }
+   
 
 
     private async Task InitSetup()
     {
-        bool isEnabled = IsLongPathsEnabled();
+        bool isEnabled = MagicPythonEnvBuilder.IsLongPathsEnabled();
         if(isEnabled == false)
         {
-            EnableLongPaths();
+            MagicPythonEnvBuilder.EnableLongPaths();
 
-              bool isEnabledNow = IsLongPathsEnabled();
+            bool isEnabledNow = MagicPythonEnvBuilder.IsLongPathsEnabled();
               if(isEnabledNow == false)
               {
                 // Display the error message to the user
@@ -127,7 +75,7 @@
         AddConsoleText("Initializing Embedded Python Environments", MudBlazor.Color.Warning, Typo.h4);
 
         await Task.Delay(500);
-        PythonEnvironmentInitializer.InitializePythonEnvironments();
+        MagicPythonEnvBuilder.InitializePythonEnvironments();
         await Task.Delay(500);
 
         prog += 5.88;

@@ -1,12 +1,15 @@
-﻿using System;
+﻿using MagicPythonEnvBuilder;
+using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace MagicOnnxStudio.Helpers
 {
-    public class PythonEnvironmentInitializer
+    public class MagicPythonEnvBuilder
     {       
 
         public static void InitializePythonEnvironments()
@@ -159,6 +162,60 @@ namespace MagicOnnxStudio.Helpers
 
             // All files were verified successfully
             return true;
+        }
+
+        public static bool IsLongPathsEnabled()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\FileSystem", false))
+                {
+                    if (key != null)
+                    {
+                        object value = key.GetValue("LongPathsEnabled");
+                        return value != null && (int)value == 1;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error checking LongPathsEnabled status: " + ex.Message);
+            }
+            return false;
+        }
+
+        public static void EnableLongPaths()
+        {
+            try
+            {
+                // Command to add/modify the LongPathsEnabled registry key
+                string command = "reg add \"HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem\" /v LongPathsEnabled /t REG_DWORD /d 1 /f";
+
+                ProcessStartInfo processInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c {command}",
+                    Verb = "runas", // Runs the command as an administrator
+                    UseShellExecute = true,
+                    CreateNoWindow = true
+                };
+
+                Process process = Process.Start(processInfo);
+                process.WaitForExit();
+
+                if (process.ExitCode == 0)
+                {
+                    Console.WriteLine("LongPathsEnabled successfully enabled.");
+                }
+                else
+                {
+                    Console.WriteLine("Failed to enable LongPathsEnabled. Exit Code: " + process.ExitCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error enabling LongPathsEnabled: " + ex.Message);
+            }
         }
     }
 }

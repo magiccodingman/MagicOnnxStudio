@@ -92,4 +92,9 @@
 	  <Folder Include="wwwroot\images\" />
 	</ItemGroup>
 
+
+	<ItemGroup>
+	  <ProjectReference Include="..\MagicPythonEnvBuilder\MagicPythonEnvBuilder.csproj" />
+	</ItemGroup>
+
 </Project>
