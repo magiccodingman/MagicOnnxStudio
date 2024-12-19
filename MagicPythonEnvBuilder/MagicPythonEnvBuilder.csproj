@@ -9,6 +9,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>Wizard_256x256.png</PackageIcon>
     <PackageProjectUrl>https://github.com/magiccodingman/MagicOnnxStudio</PackageProjectUrl>
+    <Description>Python environment builder</Description>
   </PropertyGroup>
 
   <ItemGroup>
