@@ -49,28 +49,28 @@
         }
     }
 
-   
+
 
 
     private async Task InitSetup()
     {
         bool isEnabled = MagicPythonEnvBuilder.IsLongPathsEnabled();
-        if(isEnabled == false)
+        if (isEnabled == false)
         {
             MagicPythonEnvBuilder.EnableLongPaths();
 
             bool isEnabledNow = MagicPythonEnvBuilder.IsLongPathsEnabled();
-              if(isEnabledNow == false)
-              {
+            if (isEnabledNow == false)
+            {
                 // Display the error message to the user
                 await Application.Current.MainPage.DisplayAlert("Error", "Long Path admin access request denied or something went wrong. This is a requirement. This allows python path names to be longer on Windows. The application will now close. Please try again.", "OK");
 
                 // Close the application after the user presses OK
                 System.Diagnostics.Process.GetCurrentProcess().CloseMainWindow();
-              }
+            }
         }
-        
-      
+
+
 
         AddConsoleText("Initializing Embedded Python Environments", MudBlazor.Color.Warning, Typo.h4);
 
@@ -94,7 +94,7 @@
         prog += 5.88;
         StateHasChanged();
 
-        await foreach (var output in RunGetPipCommand(cpuPy, "install --upgrade torch transformers onnx onnxruntime"))
+        await foreach (var output in RunGetPipCommand(cpuPy, "install --upgrade torch transformers==4.45.0 onnx onnxruntime onnxconverter-common scikit-learn"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
@@ -122,7 +122,7 @@
         dmlPy.InitializePythonEnvironment(Cache.DirectMlPythonPath);
         prog += 5.88;
         StateHasChanged();
-        await foreach (var output in RunGetPipCommand(dmlPy, "install --upgrade torch transformers onnx onnxruntime-directml"))
+        await foreach (var output in RunGetPipCommand(dmlPy, "install --upgrade torch transformers==4.45.0 onnx onnxruntime-directml"))
         {
             AddConsoleText(output, MudBlazor.Color.Info);
         }
@@ -197,17 +197,6 @@
         isRunning = false;
         await StartCountdown();
 
-
-        /*
-         * This code officially works!
-         */
-
-    //     string outputTest = cpuPy.RunOnnxConversion(@"C:\Ai_Models\Phi-3.5-mini-instruct_Uncensored",
-    // @"C:\Ai_Models\OnnxRuntime\tests\cpu",
-    // PythonEnvironmentService.Precision.int4,
-    // PythonEnvironmentService.Execution.cpu);
-    //     //AddConsoleText(outputTest, MudBlazor.Color.Info);
-    //     await Task.Delay(10); // Simulate async processing
     }
 
     private async Task StartCountdown()
